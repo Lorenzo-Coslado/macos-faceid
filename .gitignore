@@ -1,3 +1,7 @@
+# --- Clé privée Sparkle : NE JAMAIS COMMITER (signe les mises à jour) ---
+*private-key*
+*sparkle*key*.txt
+
 # --- Dépendances vendues (téléchargées au build) ---
 vendor/
 
