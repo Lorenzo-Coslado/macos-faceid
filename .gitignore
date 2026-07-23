@@ -1,0 +1,38 @@
+# --- Python ---
+.venv/
+__pycache__/
+*.pyc
+
+# --- Build artefacts ---
+build/
+FaceID.app/
+*.bundle/
+pam/pam_faceid.so
+helpers/touchid-helper
+helpers/auth-modal
+helpers/faceid-hud
+
+# --- Assets générés (régénérés au build) ---
+assets/faceid-icon.png
+assets/faceid-icon.icns
+assets/appicon-1024.png
+assets/FaceID.icns
+i18n/
+
+# --- Données locales / temporaires ---
+*.log
+.DS_Store
+
+# --- Expérimental : déverrouillage écran (non supporté, cf. LOCK-SCREEN-PLAN.md) ---
+# Bloqué par macOS (SIP + restrictions Apple). Gardé en local, hors du dépôt public.
+authplugin/
+scripts/build-authplugin.sh
+scripts/screensaver-*.sh
+scripts/pam-screensaver-*.sh
+scripts/authplugin-*.sh
+scripts/test-camera-locked.sh
+
+# --- Legacy : remplacé par l'app (login item via SMAppService, caméra via le bundle) ---
+launchagent/
+scripts/install-agent.sh
+scripts/fix-camera-launchd.sh
