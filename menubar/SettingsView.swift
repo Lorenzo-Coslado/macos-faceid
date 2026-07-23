@@ -8,8 +8,6 @@ struct SettingsView: View {
 
     @State private var sudoActive = Status.sudoActive
     @State private var enrolled = Status.enrolled
-    @State private var lockActive = Status.lockActive
-    @State private var lockConfirmed = Status.lockConfirmed
     @State private var busy = false
     @State private var note = ""
 
@@ -21,7 +19,6 @@ struct SettingsView: View {
                 VStack(alignment: .leading, spacing: 22) {
                     faceSection
                     sudoSection
-                    lockSection
                     behaviourSection
                     if !note.isEmpty {
                         Text(note).font(.system(size: 11.5)).foregroundStyle(.secondary)
@@ -81,38 +78,6 @@ struct SettingsView: View {
         }
     }
 
-    // ---- section écran verrouillé ----
-    private var lockSection: some View {
-        section(L("set.section.lock")) {
-            VStack(alignment: .leading, spacing: 10) {
-                Toggle(isOn: Binding(get: { lockActive }, set: { toggleLock($0) })) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(L("set.lock.toggle"))
-                        Text(L("set.lock.desc"))
-                            .font(.system(size: 11)).foregroundStyle(.secondary)
-                    }
-                }
-                .toggleStyle(.switch).tint(Brand.green).disabled(busy)
-
-                Label(L("set.lock.warning"), systemImage: "exclamationmark.triangle.fill")
-                    .font(.system(size: 11)).foregroundStyle(.orange)
-
-                if lockActive && !lockConfirmed {
-                    HStack(spacing: 8) {
-                        Text(L("set.lock.trial"))
-                            .font(.system(size: 11)).foregroundStyle(.secondary)
-                        Spacer()
-                        Button(L("set.lock.confirm")) { confirmLock() }
-                            .tint(Brand.green).disabled(busy)
-                    }
-                } else if lockActive && lockConfirmed {
-                    Label(L("set.lock.confirmed"), systemImage: "checkmark.seal.fill")
-                        .font(.system(size: 11)).foregroundStyle(Brand.green)
-                }
-            }
-        }
-    }
-
     // ---- section comportement ----
     private var behaviourSection: some View {
         section(L("set.section.behavior")) {
@@ -162,8 +127,6 @@ struct SettingsView: View {
     private func refreshStatus() {
         sudoActive = Status.sudoActive
         enrolled = Status.enrolled
-        lockActive = Status.lockActive
-        lockConfirmed = Status.lockConfirmed
     }
 
     private func applyDaemon() { onApply() }
@@ -192,42 +155,6 @@ struct SettingsView: View {
                 note = msg
                 sudoActive = Status.sudoActive
                 _ = ok
-            }
-        }
-    }
-
-    private func toggleLock(_ want: Bool) {
-        busy = true; note = ""
-        DispatchQueue.global().async {
-            var msg = ""
-            if want {
-                let build = Run.bashUser("make -C \(sh(Paths.root))/pam")
-                if build.code != 0 {
-                    msg = String(format: L("set.msg.buildfail"), build.out)
-                } else {
-                    let r = Run.admin("bash \(sh(Paths.script("pam-screensaver-install-root.sh")))")
-                    msg = r.ok ? L("set.msg.lock.on") : String(format: L("set.msg.cancelled"), r.msg)
-                }
-            } else {
-                let r = Run.admin("bash \(sh(Paths.script("pam-screensaver-uninstall-root.sh")))")
-                msg = r.ok ? L("set.msg.lock.off") : String(format: L("set.msg.cancelled"), r.msg)
-            }
-            DispatchQueue.main.async {
-                busy = false; note = msg
-                lockActive = Status.lockActive; lockConfirmed = Status.lockConfirmed
-            }
-        }
-    }
-
-    private func confirmLock() {
-        busy = true
-        DispatchQueue.global().async {
-            let r = Run.admin("bash \(sh(Paths.script("pam-screensaver-confirm-root.sh")))")
-            DispatchQueue.main.async {
-                busy = false
-                note = r.ok ? L("set.msg.lock.confirmed")
-                            : String(format: L("set.msg.cancelled"), r.msg)
-                lockConfirmed = Status.lockConfirmed
             }
         }
     }

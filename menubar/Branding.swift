@@ -69,14 +69,6 @@ enum Status {
         else { return false }
         return s.contains("pam_faceid")
     }
-    static var lockActive: Bool {
-        guard let s = try? String(contentsOfFile: "/etc/pam.d/screensaver", encoding: .utf8)
-        else { return false }
-        return s.contains("pam_faceid")
-    }
-    static var lockConfirmed: Bool {
-        FileManager.default.fileExists(atPath: "/usr/local/lib/pam/.faceid-ss-confirmed")
-    }
 }
 
 enum Run {
