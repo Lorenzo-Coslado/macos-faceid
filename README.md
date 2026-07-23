@@ -14,12 +14,6 @@ recognition fully on your Mac.
   <img src="https://img.shields.io/badge/license-MIT-3ba55d" alt="MIT" />
 </p>
 
-<a href="https://github.com/Lorenzo-Coslado/macos-faceid/releases/latest/download/FaceID.dmg">
-  <img src="assets/download-macos.png" width="230" alt="Download for macOS" />
-</a>
-
-<br><br>
-
 <img src="assets/unlock.gif" width="540" alt="Face ID unlocking sudo" />
 
 </div>
@@ -38,39 +32,49 @@ leaves your Mac.
 > so it is not more secure than Touch ID. `sudo` always keeps your password as a
 > fallback, so you can never lock yourself out.
 
-## Screenshots
+## Installation
 
-<table>
-  <tr>
-    <td width="50%"><img src="assets/onboarding.png" alt="Guided enrollment" /></td>
-    <td width="50%"><img src="assets/modal.png" alt="Choice panel" /></td>
-  </tr>
-  <tr>
-    <td align="center"><b>Guided enrollment</b></td>
-    <td align="center"><b>Face&nbsp;ID, Touch&nbsp;ID, or password</b></td>
-  </tr>
-</table>
+### 1. Download the app
 
-## Install
+<a href="https://github.com/Lorenzo-Coslado/macos-faceid/releases/latest/download/FaceID.dmg">
+  <img src="assets/download-macos.png" width="300" alt="Download for macOS" />
+</a>
 
-1. [Download `FaceID.dmg`](https://github.com/Lorenzo-Coslado/macos-faceid/releases/latest/download/FaceID.dmg), open it, and drag **FaceID** into your **Applications** folder.
-2. Launch **FaceID**. A small face icon appears in the menu bar.
-3. Click it, choose **Set Up My Face**, and allow the camera when asked.
-4. Open **Settings** and turn on **Enable Face ID for sudo** (enter your admin password once).
-5. Try it in a terminal:
+Open the downloaded `FaceID.dmg` and drag **FaceID** into your **Applications** folder.
+The app is signed and notarized by Apple, so it opens without any security warning.
+
+### 2. Set up your face
+
+Launch **FaceID** from Applications. A small face icon appears in your menu bar. Click
+it and choose **Set Up My Face**, then follow the enrollment (allow the camera when
+macOS asks). It takes a few seconds.
+
+<div align="center"><img src="assets/onboarding.png" width="760" alt="Guided enrollment" /></div>
+
+### 3. Turn on Face ID for sudo
+
+Open **Settings** from the menu and switch on **Enable Face ID for sudo**. Enter your
+admin password once so the app can install its `sudo` component.
+
+<div align="center"><img src="assets/settings.png" width="760" alt="Settings window" /></div>
+
+### 4. Use it
+
+Run any `sudo` command in a terminal:
 
 ```bash
 sudo -k && sudo true
 ```
 
-The camera turns on, recognizes you, and `sudo` unlocks. Python, OpenCV and the
-recognition models are bundled inside the app, so there is nothing else to install.
-The app is signed and notarized by Apple, so there is no security warning on first open.
+The choice panel appears, the camera scans your face, and `sudo` unlocks. If the match
+fails for any reason, you simply get the normal password prompt.
+
+<div align="center"><img src="assets/modal.png" width="620" alt="Face ID choice panel" /></div>
 
 ## How it works
 
 <div align="center">
-  <img src="assets/architecture.svg" width="840" alt="Architecture: sudo to PAM module to the daemon that owns the camera and runs recognition" />
+  <img src="assets/architecture.svg" width="840" alt="Architecture: sudo hands off to a PAM module, which asks a daemon that owns the camera and runs recognition" />
 </div>
 
 A root process started by `sudo` cannot reach the camera, because macOS blocks camera
@@ -78,7 +82,7 @@ access in that context (TCC). So a small **PAM module** hands the request to a *
 that runs in your login session and owns the camera. The daemon finds your face with
 [YuNet](https://github.com/opencv/opencv_zoo), turns it into an embedding with
 [SFace](https://github.com/opencv/opencv_zoo), and compares it to the face you enrolled.
-The PAM rule is `sufficient`, so a failed match simply falls through to your password.
+The PAM rule is `sufficient`, so a failed match falls through to your password.
 
 ## Security
 
@@ -119,18 +123,55 @@ certificate and a `notarytool` keychain profile named `faceid-notary`:
 
 ## FAQ
 
-**Can it unlock the lock screen or the login window?**
+<details>
+<summary><b>Is it actually secure?</b></summary>
+
+No, and it does not try to be. A 2D webcam can be tricked by a photo or a video. Keep it
+for terminal convenience and keep Touch ID or your password as your real security.
+</details>
+
+<details>
+<summary><b>What happens if it does not recognize me?</b></summary>
+
+You get the normal password prompt, exactly like before. Nothing is lost. If it misses
+you often, re-enroll in better lighting, or lower the sensitivity in Settings.
+</details>
+
+<details>
+<summary><b>Does it send my face anywhere?</b></summary>
+
+No. Detection, recognition and your enrolled face all stay on your Mac, in
+`~/Library/Application Support/faceid`. There is no network code.
+</details>
+
+<details>
+<summary><b>Which Macs are supported?</b></summary>
+
+Apple Silicon Macs on macOS 13 or later, with any built-in or external webcam.
+</details>
+
+<details>
+<summary><b>Can I still use Touch ID or my password?</b></summary>
+
+Yes. Every prompt shows a panel with Face ID, Touch ID (Fingerprint), and Password. Pick
+whichever you want. You can also hide the panel in Settings to go straight to Face ID.
+</details>
+
+<details>
+<summary><b>Can it unlock the lock screen or the login window?</b></summary>
+
 No. macOS protects the screen unlock path with SIP and does not let a third party plug
-into it without losing Touch ID and the native UI. Apple engineers confirmed this on the
-developer forums. For hands-free unlock, use an Apple Watch. The full write-up is in
+into it without losing Touch ID and the native UI, which Apple engineers confirmed on
+the developer forums. For hands-free unlock, use an Apple Watch. The full write-up is in
 [`LOCK-SCREEN-PLAN.md`](LOCK-SCREEN-PLAN.md).
+</details>
 
-**Will macOS say the app is from an unidentified developer?**
-No. The download is signed with a Developer ID and notarized by Apple.
+<details>
+<summary><b>How do I uninstall it?</b></summary>
 
-**How do I uninstall it?**
 Open Settings, turn off Face ID for sudo, quit the app, and move `FaceID.app` to the
 Trash. To delete your enrolled face, run `rm -rf ~/Library/Application\ Support/faceid`.
+</details>
 
 ## Contributing
 

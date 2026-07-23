@@ -96,6 +96,10 @@ final class AppController: NSObject, NSApplicationDelegate {
         if !Status.enrolled {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { self.openOnboarding() }
         }
+        // Flag interne pour les captures d'écran de la doc.
+        if CommandLine.arguments.contains("--open-settings") {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { self.openSettings() }
+        }
     }
 
     func applicationWillTerminate(_ n: Notification) { daemon.stop() }
