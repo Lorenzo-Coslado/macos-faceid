@@ -78,6 +78,14 @@ TR = {
         "nl": "Instellingen…", "ja": "設定…", "zh-Hans": "设置…",
         "ko": "설정…", "ru": "Настройки…",
     },
+    "menu.update": {
+        "en": "Check for Updates…", "fr": "Rechercher les mises à jour…",
+        "es": "Buscar actualizaciones…", "de": "Nach Updates suchen…",
+        "it": "Verifica aggiornamenti…", "pt-BR": "Buscar atualizações…",
+        "nl": "Controleren op updates…", "ja": "アップデートを確認…",
+        "zh-Hans": "检查更新…", "ko": "업데이트 확인…",
+        "ru": "Проверить обновления…",
+    },
     "menu.login": {
         "en": "Launch at Login", "fr": "Lancer au démarrage",
         "es": "Abrir al iniciar sesión", "de": "Beim Anmelden öffnen",

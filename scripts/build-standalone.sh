@@ -10,11 +10,14 @@ PY="$HERE/.venv/bin/python"
 APP="$HERE/dist/Mugshot.app"
 RES="$APP/Contents/Resources"
 BUNDLE_ID="com.lorenzo.Mugshot"
+MARKETING_VERSION="${MARKETING_VERSION:-1.0}"   # ex: 1.0.1 (surchargé par release.sh)
+BUILD_VERSION="${BUILD_VERSION:-1}"             # entier monotone (Sparkle compare ceci)
 MODELS="$HOME/Library/Application Support/faceid/models"
 
 echo "══ 1/6  Prérequis (modèles, helpers, module PAM, assets, i18n) ══"
 [ -f "$MODELS/face_recognition_sface_2021dec.onnx" ] || bash scripts/download-models.sh
 bash scripts/build-helpers.sh >/dev/null
+bash scripts/fetch-sparkle.sh >/dev/null
 make -C pam >/dev/null
 "$PY" scripts/make_icon.py >/dev/null
 "$PY" scripts/make_appicon.py >/dev/null
@@ -39,7 +42,9 @@ rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$RES"
 swiftc -O -swift-version 5 -o "$APP/Contents/MacOS/Mugshot" \
   menubar/Branding.swift menubar/Onboarding.swift menubar/SettingsView.swift menubar/FaceIDApp.swift \
-  -framework AppKit -framework SwiftUI -framework AVFoundation -framework ServiceManagement
+  -framework AppKit -framework SwiftUI -framework AVFoundation -framework ServiceManagement \
+  -F "$HERE/vendor/sparkle" -framework Sparkle \
+  -Xlinker -rpath -Xlinker @executable_path/../Frameworks
 
 echo "══ 4/6  Info.plist ══"
 cat > "$APP/Contents/Info.plist" <<PLIST
@@ -53,10 +58,13 @@ cat > "$APP/Contents/Info.plist" <<PLIST
   <key>CFBundleExecutable</key>      <string>Mugshot</string>
   <key>CFBundleIconFile</key>        <string>Mugshot</string>
   <key>CFBundlePackageType</key>     <string>APPL</string>
-  <key>CFBundleShortVersionString</key> <string>1.0</string>
-  <key>CFBundleVersion</key>         <string>1</string>
+  <key>CFBundleShortVersionString</key> <string>${MARKETING_VERSION}</string>
+  <key>CFBundleVersion</key>         <string>${BUILD_VERSION}</string>
   <key>LSUIElement</key>             <true/>
   <key>LSMinimumSystemVersion</key>  <string>13.0</string>
+  <key>SUFeedURL</key>               <string>https://raw.githubusercontent.com/Lorenzo-Coslado/macos-faceid/main/appcast.xml</string>
+  <key>SUPublicEDKey</key>           <string>MYs0iwYg/b5lDERYBHVBBiIw8R2awqExOluwOfZlp0w=</string>
+  <key>SUEnableAutomaticChecks</key> <true/>
   <key>NSCameraUsageDescription</key>
   <string>Reconnaissance faciale locale pour déverrouiller sudo.</string>
 </dict>
@@ -64,6 +72,8 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 PLIST
 
 echo "══ 5/6  Ressources embarquées ══"
+mkdir -p "$APP/Contents/Frameworks"
+cp -R "$HERE/vendor/sparkle/Sparkle.framework" "$APP/Contents/Frameworks/"   # auto-update
 cp "$HERE/assets/Mugshot.icns" "$RES/Mugshot.icns"
 cp "$HERE/assets/faceid-icon.png" "$RES/faceid-icon.png"
 cp "$HERE/assets/menubar-icon.png" "$RES/menubar-icon.png"

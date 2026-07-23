@@ -46,6 +46,19 @@ for b in "$APP/Contents/Resources/faceid/faceid" \
          "$APP/Contents/Resources/pam/pam_faceid.so"; do
   codesign --force --timestamp --options runtime --entitlements "$ENT" --sign "$DEV_ID" "$b"
 done
+# b-bis) Sparkle : sous-bundles d'abord (on préserve leurs entitlements, ex. le
+#        Downloader.xpc sandboxé + réseau), puis le framework. Surtout PAS de --deep.
+FW="$APP/Contents/Frameworks/Sparkle.framework/Versions/B"
+for comp in "$FW/XPCServices/Downloader.xpc" \
+            "$FW/XPCServices/Installer.xpc" \
+            "$FW/Autoupdate" \
+            "$FW/Updater.app"; do
+  codesign --force --timestamp --options runtime \
+    --preserve-metadata=entitlements --sign "$DEV_ID" "$comp"
+done
+codesign --force --timestamp --options runtime --sign "$DEV_ID" \
+  "$APP/Contents/Frameworks/Sparkle.framework"
+
 # c) l'app elle-même, en dernier
 codesign --force --timestamp --options runtime --entitlements "$ENT" --sign "$DEV_ID" "$APP"
 

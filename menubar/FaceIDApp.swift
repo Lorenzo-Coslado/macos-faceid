@@ -3,6 +3,7 @@
 import AppKit
 import SwiftUI
 import ServiceManagement
+import Sparkle
 
 // ---------- supervision du daemon ----------
 final class DaemonController {
@@ -64,6 +65,9 @@ final class AppController: NSObject, NSApplicationDelegate {
     let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
     let daemon = DaemonController()
     let enroll = EnrollController()
+    // Auto-update : démarre le vérificateur (check périodique via SUEnableAutomaticChecks).
+    let updater = SPUStandardUpdaterController(startingUpdater: true,
+                                               updaterDelegate: nil, userDriverDelegate: nil)
     var onboardingWC: NSWindowController?
     var settingsWC: NSWindowController?
 
@@ -129,6 +133,13 @@ final class AppController: NSObject, NSApplicationDelegate {
         if running { m.addItem(item(L("menu.daemon.stop"), #selector(stopDaemon))) }
         else { m.addItem(item(L("menu.daemon.start"), #selector(startDaemon))) }
         m.addItem(item(L("menu.settings"), #selector(openSettings), ","))
+
+        // Item géré par Sparkle (activation/désactivation auto pendant un check).
+        let upd = NSMenuItem(title: L("menu.update"),
+                             action: #selector(SPUStandardUpdaterController.checkForUpdates(_:)),
+                             keyEquivalent: "")
+        upd.target = updater
+        m.addItem(upd)
 
         m.addItem(.separator())
         let login = item(L("menu.login"), #selector(toggleLogin))

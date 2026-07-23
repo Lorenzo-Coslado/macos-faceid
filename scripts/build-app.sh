@@ -15,6 +15,9 @@ sleep 1
 echo "== Régénération du glyphe source =="
 "$HERE/.venv/bin/python" "$HERE/scripts/make_icon.py"
 
+echo "== Sparkle (auto-update) =="
+bash "$HERE/scripts/fetch-sparkle.sh"
+
 echo "== Icône (.icns) =="
 "$HERE/.venv/bin/python" "$HERE/scripts/make_appicon.py"
 ICONSET="$HERE/build/Mugshot.iconset"
@@ -46,6 +49,9 @@ cat > "$APP/Contents/Info.plist" <<PLIST
   <key>CFBundleVersion</key>         <string>1</string>
   <key>LSUIElement</key>             <true/>
   <key>LSMinimumSystemVersion</key>  <string>13.0</string>
+  <key>SUFeedURL</key>               <string>https://raw.githubusercontent.com/Lorenzo-Coslado/macos-faceid/main/appcast.xml</string>
+  <key>SUPublicEDKey</key>           <string>MYs0iwYg/b5lDERYBHVBBiIw8R2awqExOluwOfZlp0w=</string>
+  <key>SUEnableAutomaticChecks</key> <true/>
   <key>CFBundleDevelopmentRegion</key> <string>en</string>
   <key>CFBundleLocalizations</key>
   <array>
@@ -63,6 +69,8 @@ PLIST
 cp "$HERE/assets/Mugshot.icns" "$APP/Contents/Resources/Mugshot.icns"
 cp "$HERE/assets/faceid-icon.png" "$APP/Contents/Resources/faceid-icon.png"
 cp "$HERE/assets/menubar-icon.png" "$APP/Contents/Resources/menubar-icon.png"
+mkdir -p "$APP/Contents/Frameworks"
+cp -R "$HERE/vendor/sparkle/Sparkle.framework" "$APP/Contents/Frameworks/"
 
 echo "== Traductions (.lproj) =="
 "$HERE/.venv/bin/python" "$HERE/scripts/make_i18n.py"
@@ -75,7 +83,9 @@ swiftc -O -swift-version 5 \
   "$HERE/menubar/Onboarding.swift" \
   "$HERE/menubar/SettingsView.swift" \
   "$HERE/menubar/FaceIDApp.swift" \
-  -framework AppKit -framework SwiftUI -framework AVFoundation -framework ServiceManagement
+  -framework AppKit -framework SwiftUI -framework AVFoundation -framework ServiceManagement \
+  -F "$HERE/vendor/sparkle" -framework Sparkle \
+  -Xlinker -rpath -Xlinker @executable_path/../Frameworks
 
 echo "== Scripts exécutables =="
 chmod +x "$HERE"/scripts/*.sh 2>/dev/null || true

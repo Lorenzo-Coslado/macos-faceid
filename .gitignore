@@ -1,3 +1,6 @@
+# --- Dépendances vendues (téléchargées au build) ---
+vendor/
+
 # --- Python ---
 .venv/
 __pycache__/
