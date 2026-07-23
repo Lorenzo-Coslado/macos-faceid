@@ -36,16 +36,16 @@ leaves your Mac.
 
 ### 1. Download the app
 
-<a href="https://github.com/Lorenzo-Coslado/macos-faceid/releases/latest/download/FaceID.dmg">
+<a href="https://github.com/Lorenzo-Coslado/macos-faceid/releases/latest/download/Mugshot.dmg">
   <img src="assets/download-macos.png" width="300" alt="Download for macOS" />
 </a>
 
-Open the downloaded `FaceID.dmg` and drag **FaceID** into your **Applications** folder.
+Open the downloaded `Mugshot.dmg` and drag **Mugshot** into your **Applications** folder.
 The app is signed and notarized by Apple, so it opens without any security warning.
 
 ### 2. Set up your face
 
-Launch **FaceID** from Applications. A small face icon appears in your menu bar. Click
+Launch **Mugshot** from Applications. A small face icon appears in your menu bar. Click
 it and choose **Set Up My Face**, then follow the enrollment (allow the camera when
 macOS asks). It takes a few seconds.
 
@@ -89,7 +89,7 @@ The PAM rule is `sufficient`, so a failed match falls through to your password.
 A few things worth being clear about:
 
 * **Spoofing.** An RGB webcam can be fooled by a printed photo or a video. Real Face ID
-  uses an infrared depth sensor precisely to avoid this. FaceID has no such protection.
+  uses an infrared depth sensor precisely to avoid this. Mugshot has no such protection.
 * **Fallback.** Because the PAM rule is `sufficient`, a failed match, a stopped daemon,
   or even a deleted app all fall back to your password. You cannot get locked out.
 * **Privacy.** Your face embeddings stay in `~/Library/Application Support/faceid` and
@@ -169,7 +169,7 @@ the developer forums. For hands-free unlock, use an Apple Watch. The full write-
 <details>
 <summary><b>How do I uninstall it?</b></summary>
 
-Open Settings, turn off Face ID for sudo, quit the app, and move `FaceID.app` to the
+Open Settings, turn off Face ID for sudo, quit the app, and move `Mugshot.app` to the
 Trash. To delete your enrolled face, run `rm -rf ~/Library/Application\ Support/faceid`.
 </details>
 

@@ -15,7 +15,7 @@ final class EnrollController: ObservableObject {
     func reset() { phase = .intro; count = 0; message = "" }
 
     func begin() {
-        // Demande l'accès caméra (prompt attribué à FaceID.app), puis lance le scan.
+        // Demande l'accès caméra (prompt attribué à Mugshot.app), puis lance le scan.
         switch AVCaptureDevice.authorizationStatus(for: .video) {
         case .authorized: startScan()
         case .denied, .restricted:

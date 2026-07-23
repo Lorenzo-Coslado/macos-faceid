@@ -2,7 +2,7 @@
 import os
 from pathlib import Path
 
-# Chemins. En bundle autonome (FaceID.app), l'app pose des variables d'env vers
+# Chemins. En bundle autonome (Mugshot.app), l'app pose des variables d'env vers
 # l'intérieur du bundle. En développement, repli sur l'arborescence du projet.
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 

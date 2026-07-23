@@ -16,9 +16,9 @@ set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$HERE"
-APP="$HERE/dist/FaceID.app"
+APP="$HERE/dist/Mugshot.app"
 ENT="$HERE/packaging/entitlements.plist"
-DMG="$HERE/dist/FaceID.dmg"
+DMG="$HERE/dist/Mugshot.dmg"
 NOTARY_PROFILE="${NOTARY_PROFILE:-faceid-notary}"
 
 # Identité : arg DEV_ID, sinon on tente de détecter le certificat Developer ID Application.
@@ -54,7 +54,7 @@ codesign --verify --deep --strict --verbose=2 "$APP" 2>&1 | tail -3
 
 echo "══ 4  DMG ══"
 rm -f "$DMG"
-hdiutil create -volname "FaceID" -srcfolder "$APP" -ov -format UDZO "$DMG" >/dev/null
+hdiutil create -volname "Mugshot" -srcfolder "$APP" -ov -format UDZO "$DMG" >/dev/null
 
 echo "══ 5  Notarisation (upload + attente Apple) ══"
 xcrun notarytool submit "$DMG" --keychain-profile "$NOTARY_PROFILE" --wait
@@ -62,7 +62,7 @@ xcrun notarytool submit "$DMG" --keychain-profile "$NOTARY_PROFILE" --wait
 echo "══ 6  Staple (app puis DMG) ══"
 xcrun stapler staple "$APP"
 rm -f "$DMG"
-hdiutil create -volname "FaceID" -srcfolder "$APP" -ov -format UDZO "$DMG" >/dev/null
+hdiutil create -volname "Mugshot" -srcfolder "$APP" -ov -format UDZO "$DMG" >/dev/null
 xcrun stapler staple "$DMG"
 
 echo

@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
-# Construit FaceID.app (menu bar + fenêtres) et l'installe dans /Applications.
+# Construit Mugshot.app (menu bar + fenêtres) et l'installe dans /Applications.
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-APP="$HERE/build/FaceID.app"
-BUNDLE_ID="com.lorenzo.FaceID"
-DEST="/Applications/FaceID.app"
+APP="$HERE/build/Mugshot.app"
+BUNDLE_ID="com.lorenzo.Mugshot"
+DEST="/Applications/Mugshot.app"
 
 echo "== Arrêt d'une instance existante =="
-pkill -f "FaceID.app/Contents/MacOS/FaceID" 2>/dev/null || true
+pkill -f "Mugshot.app/Contents/MacOS/Mugshot" 2>/dev/null || true
 pkill -f "faceid.daemon" 2>/dev/null || true
 sleep 1
 
@@ -17,7 +17,7 @@ echo "== Régénération du glyphe source =="
 
 echo "== Icône (.icns) =="
 "$HERE/.venv/bin/python" "$HERE/scripts/make_appicon.py"
-ICONSET="$HERE/build/FaceID.iconset"
+ICONSET="$HERE/build/Mugshot.iconset"
 rm -rf "$ICONSET"; mkdir -p "$ICONSET"
 SRC="$HERE/assets/appicon-1024.png"
 for sz in 16 32 128 256 512; do
@@ -25,7 +25,7 @@ for sz in 16 32 128 256 512; do
   sips -z $((sz*2)) $((sz*2)) "$SRC" --out "$ICONSET/icon_${sz}x${sz}@2x.png" >/dev/null
 done
 cp "$SRC" "$ICONSET/icon_512x512@2x.png"
-iconutil -c icns "$ICONSET" -o "$HERE/assets/FaceID.icns"
+iconutil -c icns "$ICONSET" -o "$HERE/assets/Mugshot.icns"
 
 echo "== Assemblage du bundle =="
 rm -rf "$APP"
@@ -36,11 +36,11 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-  <key>CFBundleName</key>            <string>FaceID</string>
-  <key>CFBundleDisplayName</key>     <string>FaceID</string>
+  <key>CFBundleName</key>            <string>Mugshot</string>
+  <key>CFBundleDisplayName</key>     <string>Mugshot</string>
   <key>CFBundleIdentifier</key>      <string>${BUNDLE_ID}</string>
-  <key>CFBundleExecutable</key>      <string>FaceID</string>
-  <key>CFBundleIconFile</key>        <string>FaceID</string>
+  <key>CFBundleExecutable</key>      <string>Mugshot</string>
+  <key>CFBundleIconFile</key>        <string>Mugshot</string>
   <key>CFBundlePackageType</key>     <string>APPL</string>
   <key>CFBundleShortVersionString</key> <string>1.0</string>
   <key>CFBundleVersion</key>         <string>1</string>
@@ -60,7 +60,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 </plist>
 PLIST
 
-cp "$HERE/assets/FaceID.icns" "$APP/Contents/Resources/FaceID.icns"
+cp "$HERE/assets/Mugshot.icns" "$APP/Contents/Resources/Mugshot.icns"
 cp "$HERE/assets/faceid-icon.png" "$APP/Contents/Resources/faceid-icon.png"
 cp "$HERE/assets/menubar-icon.png" "$APP/Contents/Resources/menubar-icon.png"
 
@@ -70,7 +70,7 @@ cp -R "$HERE"/i18n/*.lproj "$APP/Contents/Resources/"
 
 echo "== Compilation Swift (4 fichiers) =="
 swiftc -O -swift-version 5 \
-  -o "$APP/Contents/MacOS/FaceID" \
+  -o "$APP/Contents/MacOS/Mugshot" \
   "$HERE/menubar/Branding.swift" \
   "$HERE/menubar/Onboarding.swift" \
   "$HERE/menubar/SettingsView.swift" \
@@ -89,4 +89,4 @@ cp -R "$APP" "$DEST"
 echo "   -> $DEST"
 
 echo
-echo "FaceID.app installé. Lance-le :  open \"$DEST\""
+echo "Mugshot.app installé. Lance-le :  open \"$DEST\""

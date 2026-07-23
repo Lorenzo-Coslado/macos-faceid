@@ -5,7 +5,7 @@ __pycache__/
 
 # --- Build artefacts ---
 build/
-FaceID.app/
+Mugshot.app/
 *.bundle/
 pam/pam_faceid.so
 helpers/touchid-helper
@@ -16,7 +16,7 @@ helpers/faceid-hud
 assets/faceid-icon.png
 assets/faceid-icon.icns
 assets/appicon-1024.png
-assets/FaceID.icns
+assets/Mugshot.icns
 i18n/
 
 # --- Données locales / temporaires ---

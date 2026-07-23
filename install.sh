@@ -17,9 +17,9 @@ bash scripts/setup.sh
 bash scripts/build-app.sh
 
 echo
-echo "✅ Installé. FaceID est dans /Applications."
+echo "✅ Installé. Mugshot est dans /Applications."
 echo "   Ouverture de l'app…"
-open /Applications/FaceID.app || true
+open /Applications/Mugshot.app || true
 echo
 echo "Étapes suivantes, dans l'app (icône dans la barre de menus) :"
 echo "  1. « Configurer mon visage » pour enrôler ton visage."
