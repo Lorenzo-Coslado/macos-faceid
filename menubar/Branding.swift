@@ -15,14 +15,42 @@ func onMain<T>(_ work: @escaping () -> T) -> T {
 }
 
 enum Paths {
-    // FaceIDProjectRoot est injecté au build (build-app.sh) selon l'emplacement
-    // du clone. Le fallback n'est qu'un filet et n'est jamais utilisé en pratique.
+    static let bundleRes = Bundle.main.resourceURL
+
+    /// Binaire autonome `faceid` s'il est embarqué → mode DISTRIBUÉ (bundle).
+    static var faceidBinary: String? {
+        guard let r = bundleRes else { return nil }
+        let p = r.appendingPathComponent("faceid/faceid").path
+        return FileManager.default.fileExists(atPath: p) ? p : nil
+    }
+    static var bundled: Bool { faceidBinary != nil }
+
+    // Mode DÉVELOPPEMENT : racine du projet (Info.plist ou fallback).
     static let root = Bundle.main.infoDictionary?["FaceIDProjectRoot"] as? String
         ?? (NSHomeDirectory() as NSString).appendingPathComponent("Dev/macos-faceid")
     static var python: String { "\(root)/.venv/bin/python" }
-    static func script(_ n: String) -> String { "\(root)/scripts/\(n)" }
+
+    private static func res(_ s: String) -> String {
+        bundleRes!.appendingPathComponent(s).path
+    }
+    static var helpersDir: String { bundled ? res("helpers") : "\(root)/helpers" }
+    static var assetsDir: String { bundled ? res("assets") : "\(root)/assets" }
+    static var modelsDir: String { bundled ? res("models") : "\(supportDir)/models" }
+    static var scriptsDir: String { bundled ? res("scripts") : "\(root)/scripts" }
+    static var pamModule: String {
+        bundled ? res("pam/pam_faceid.so") : "\(root)/pam/pam_faceid.so"
+    }
+
+    static func script(_ n: String) -> String { "\(scriptsDir)/\(n)" }
     static var supportDir: String {
         NSString(string: "~/Library/Application Support/faceid").expandingTildeInPath
+    }
+
+    /// Env passé aux process enfants pour trouver les ressources du bundle.
+    static var childEnv: [String: String] {
+        bundled ? ["FACEID_HELPERS_DIR": helpersDir,
+                   "FACEID_ASSETS_DIR": assetsDir,
+                   "FACEID_MODELS_DIR": modelsDir] : [:]
     }
 }
 
@@ -72,14 +100,31 @@ enum Status {
 }
 
 enum Run {
-    /// Lance le Python du venv, bloquant, retourne (code, sortie).
+    /// (exécutable, arguments) pour une sous-commande faceid, selon le mode.
+    /// Bundle : binaire embarqué `faceid <sub>`. Dev : `python -m faceid.<module>`.
+    static func faceidCmd(_ sub: [String]) -> (String, [String]) {
+        if let bin = Paths.faceidBinary { return (bin, sub) }
+        let cmd = sub.first ?? "daemon"
+        let rest = Array(sub.dropFirst())
+        let mod: String
+        switch cmd {
+        case "verify":   mod = "faceid.verify_client"
+        case "enroll":   mod = "faceid.enroll"
+        case "selftest": mod = "faceid.selftest"
+        default:         mod = "faceid.daemon"
+        }
+        return (Paths.python, ["-m", mod] + rest)
+    }
+
+    /// Lance une sous-commande faceid en bloquant, retourne (code, sortie).
     @discardableResult
-    static func python(_ args: [String], env: [String: String] = [:]) -> (code: Int32, out: String) {
+    static func faceid(_ sub: [String], env: [String: String] = [:]) -> (code: Int32, out: String) {
+        let (exe, args) = faceidCmd(sub)
         let p = Process()
-        p.executableURL = URL(fileURLWithPath: Paths.python)
+        p.executableURL = URL(fileURLWithPath: exe)
         p.arguments = args
-        p.currentDirectoryURL = URL(fileURLWithPath: Paths.root)
         var e = ProcessInfo.processInfo.environment
+        e.merge(Paths.childEnv) { _, n in n }
         e.merge(env) { _, n in n }
         p.environment = e
         let pipe = Pipe(); p.standardOutput = pipe; p.standardError = pipe

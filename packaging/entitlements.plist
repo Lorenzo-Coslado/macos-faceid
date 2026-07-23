@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <!-- Accès caméra (l'app et le daemon embarqué en ont besoin). -->
+  <key>com.apple.security.device.camera</key>
+  <true/>
+  <!-- PyInstaller charge des dylibs empaquetées : autoriser sous hardened runtime. -->
+  <key>com.apple.security.cs.disable-library-validation</key>
+  <true/>
+  <!-- PyInstaller/Python s'appuient sur des variables DYLD_*. -->
+  <key>com.apple.security.cs.allow-dyld-environment-variables</key>
+  <true/>
+</dict>
+</plist>

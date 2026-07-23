@@ -14,12 +14,16 @@ final class DaemonController {
 
     func start() {
         guard !isRunning else { return }
+        let (exe, args) = Run.faceidCmd(["daemon"])
         let p = Process()
-        p.executableURL = URL(fileURLWithPath: Paths.python)
-        p.arguments = ["-m", "faceid.daemon"]
-        p.currentDirectoryURL = URL(fileURLWithPath: Paths.root)
+        p.executableURL = URL(fileURLWithPath: exe)
+        p.arguments = args
+        if !Paths.bundled {   // dev : cwd = projet pour que `python -m faceid` résolve
+            p.currentDirectoryURL = URL(fileURLWithPath: Paths.root)
+        }
         var e = ProcessInfo.processInfo.environment
         e["PYTHONUNBUFFERED"] = "1"
+        e.merge(Paths.childEnv) { _, n in n }
         e.merge(env) { _, n in n }
         p.environment = e
         p.terminationHandler = { [weak self] _ in
@@ -206,7 +210,7 @@ final class AppController: NSObject, NSApplicationDelegate {
 
     @objc func testVerify() {
         DispatchQueue.global().async {
-            let r = Run.python(["-m", "faceid.verify_client"])
+            let r = Run.faceid(["verify"])
             let ok = r.out.contains("OK")
             DispatchQueue.main.async {
                 self.notify(L("notify.test.title"), ok ? L("notify.test.ok") : L("notify.test.fail"))

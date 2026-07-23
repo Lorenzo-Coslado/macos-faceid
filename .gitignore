@@ -36,3 +36,9 @@ scripts/test-camera-locked.sh
 launchagent/
 scripts/install-agent.sh
 scripts/fix-camera-launchd.sh
+
+# --- Packaging autonome (PyInstaller) ---
+dist/
+packaging/dist/
+packaging/build/
+packaging/*.spec

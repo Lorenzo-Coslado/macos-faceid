@@ -33,10 +33,14 @@ final class EnrollController: ObservableObject {
 
     private func startScan() {
         phase = .scanning; count = 0; message = ""
+        let (exe, args) = Run.faceidCmd(["enroll", "--json"])
         let p = Process()
-        p.executableURL = URL(fileURLWithPath: Paths.python)
-        p.arguments = ["-m", "faceid.enroll", "--json"]
-        p.currentDirectoryURL = URL(fileURLWithPath: Paths.root)
+        p.executableURL = URL(fileURLWithPath: exe)
+        p.arguments = args
+        if !Paths.bundled { p.currentDirectoryURL = URL(fileURLWithPath: Paths.root) }
+        var env = ProcessInfo.processInfo.environment
+        env.merge(Paths.childEnv) { _, n in n }
+        p.environment = env
         let pipe = Pipe(); p.standardOutput = pipe; p.standardError = Pipe()
         pipe.fileHandleForReading.readabilityHandler = { h in
             let data = h.availableData

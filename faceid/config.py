@@ -2,11 +2,22 @@
 import os
 from pathlib import Path
 
-# Racine du projet (contient helpers/, pam/, faceid/).
+# Chemins. En bundle autonome (FaceID.app), l'app pose des variables d'env vers
+# l'intérieur du bundle. En développement, repli sur l'arborescence du projet.
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-TOUCHID_HELPER = PROJECT_ROOT / "helpers" / "touchid-helper"
-AUTH_MODAL = PROJECT_ROOT / "helpers" / "auth-modal"    # panneau natif AppKit
-FACEID_HUD = PROJECT_ROOT / "helpers" / "faceid-hud"    # capsule Dynamic Island
+
+
+def _dir(env, default):
+    v = os.environ.get(env)
+    return Path(v) if v else default
+
+
+HELPERS_DIR = _dir("FACEID_HELPERS_DIR", PROJECT_ROOT / "helpers")
+ASSETS_DIR = _dir("FACEID_ASSETS_DIR", PROJECT_ROOT / "assets")
+
+TOUCHID_HELPER = HELPERS_DIR / "touchid-helper"
+AUTH_MODAL = HELPERS_DIR / "auth-modal"    # panneau natif AppKit
+FACEID_HUD = HELPERS_DIR / "faceid-hud"    # capsule Dynamic Island
 
 # Capsule animée pendant le scan Face ID (scan -> checkmark). FACEID_HUD=0 désactive.
 HUD_ENABLED = os.environ.get("FACEID_HUD", "1") != "0"
@@ -16,17 +27,16 @@ HUD_ENABLED = os.environ.get("FACEID_HUD", "1") != "0"
 MODAL_ENABLED = os.environ.get("FACEID_MODAL", "1") != "0"
 
 # Icône du modal (glyphe Face ID vert, générée par scripts/make_icon.py).
-MODAL_ICON = PROJECT_ROOT / "assets" / "faceid-icon.icns"
+MODAL_ICON = ASSETS_DIR / "faceid-icon.icns"
 
-
-
-# Répertoire de données runtime (modèles, embeddings, socket, logs).
+# Données runtime (embeddings, socket, logs) : toujours propres à l'utilisateur.
 APP_DIR = Path(os.path.expanduser("~/Library/Application Support/faceid"))
-MODELS_DIR = APP_DIR / "models"
 EMBEDDINGS_PATH = APP_DIR / "embeddings.npy"
 SOCKET_PATH = APP_DIR / "faceid.sock"
 LOG_DIR = APP_DIR / "logs"
 
+# Modèles : embarqués dans le bundle (FACEID_MODELS_DIR) sinon Application Support.
+MODELS_DIR = _dir("FACEID_MODELS_DIR", APP_DIR / "models")
 YUNET_PATH = MODELS_DIR / "face_detection_yunet_2023mar.onnx"
 SFACE_PATH = MODELS_DIR / "face_recognition_sface_2021dec.onnx"
 

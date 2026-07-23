@@ -136,11 +136,14 @@ struct SettingsView: View {
         DispatchQueue.global().async {
             var ok = false; var msg = ""
             if want {
-                // compile le module (user) puis installe (root, prompt admin)
-                let build = Run.bashUser("make -C \(sh(Paths.root))/pam")
-                if build.code != 0 {
-                    msg = String(format: L("set.msg.buildfail"), build.out)
-                } else {
+                // Dev : compiler le module. Bundle : il est déjà précompilé.
+                var built = true
+                if !Paths.bundled {
+                    let build = Run.bashUser("make -C \(sh(Paths.root))/pam")
+                    built = build.code == 0
+                    if !built { msg = String(format: L("set.msg.buildfail"), build.out) }
+                }
+                if built {
                     let r = Run.admin("bash \(sh(Paths.script("pam-install-root.sh")))")
                     ok = r.ok
                     msg = r.ok ? L("set.msg.sudo.on") : String(format: L("set.msg.cancelled"), r.msg)
