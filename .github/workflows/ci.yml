@@ -46,10 +46,15 @@ jobs:
       - name: Build PAM module
         run: make -C pam
 
+      - name: Fetch Sparkle
+        run: bash scripts/fetch-sparkle.sh
+
       - name: Compile menu bar app
         run: |
-          swiftc -O -swift-version 5 -o /tmp/FaceID \
+          swiftc -O -swift-version 5 -o /tmp/Mugshot \
             menubar/Branding.swift menubar/Onboarding.swift \
             menubar/SettingsView.swift menubar/FaceIDApp.swift \
             -framework AppKit -framework SwiftUI \
-            -framework AVFoundation -framework ServiceManagement
+            -framework AVFoundation -framework ServiceManagement \
+            -F vendor/sparkle -framework Sparkle \
+            -Xlinker -rpath -Xlinker @executable_path/../Frameworks
