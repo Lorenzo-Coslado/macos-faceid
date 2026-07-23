@@ -66,6 +66,7 @@ PLIST
 echo "══ 5/6  Ressources embarquées ══"
 cp "$HERE/assets/FaceID.icns" "$RES/FaceID.icns"
 cp "$HERE/assets/faceid-icon.png" "$RES/faceid-icon.png"
+cp "$HERE/assets/menubar-icon.png" "$RES/menubar-icon.png"
 cp -R "$HERE/packaging/dist/faceid" "$RES/faceid"                 # moteur Python autonome
 mkdir -p "$RES/helpers" "$RES/assets" "$RES/models" "$RES/pam" "$RES/scripts"
 cp "$HERE/helpers/touchid-helper" "$HERE/helpers/auth-modal" "$HERE/helpers/faceid-hud" "$RES/helpers/"

@@ -1,8 +1,8 @@
 <div align="center">
 
-<img src="assets/logo.png" width="116" alt="FaceID" />
+<img src="assets/logo.png" width="116" alt="Mugshot" />
 
-# FaceID
+# Mugshot
 
 Unlock `sudo` with your face. A native macOS menu bar app that runs face
 recognition fully on your Mac.

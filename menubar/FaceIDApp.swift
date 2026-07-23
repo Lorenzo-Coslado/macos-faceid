@@ -70,13 +70,14 @@ final class AppController: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ n: Notification) {
         daemon.onExit = { [weak self] in self?.refresh() }
         if let b = statusItem.button {
-            let cfg = NSImage.SymbolConfiguration(pointSize: 16, weight: .regular)
-            let img = NSImage(systemSymbolName: "faceid", accessibilityDescription: "FaceID")?
-                .withSymbolConfiguration(cfg)
-            img?.isTemplate = true
-            b.image = img
+            if let p = Bundle.main.path(forResource: "menubar-icon", ofType: "png"),
+               let img = NSImage(contentsOfFile: p) {
+                img.isTemplate = true
+                img.size = NSSize(width: 18, height: 18)
+                b.image = img
+            }
             b.imagePosition = .imageOnly
-            b.toolTip = "FaceID"
+            b.toolTip = "Mugshot"
         }
         daemon.env = Settings.shared.env
         daemon.start()

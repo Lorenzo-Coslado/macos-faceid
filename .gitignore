@@ -45,3 +45,6 @@ packaging/*.spec
 
 # Frames intermédiaires du GIF de démo (on garde assets/demo.gif)
 assets/demo_frames/
+
+# Concepts de logo (exploration)
+assets/logos/

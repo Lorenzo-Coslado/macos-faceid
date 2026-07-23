@@ -62,6 +62,7 @@ PLIST
 
 cp "$HERE/assets/FaceID.icns" "$APP/Contents/Resources/FaceID.icns"
 cp "$HERE/assets/faceid-icon.png" "$APP/Contents/Resources/faceid-icon.png"
+cp "$HERE/assets/menubar-icon.png" "$APP/Contents/Resources/menubar-icon.png"
 
 echo "== Traductions (.lproj) =="
 "$HERE/.venv/bin/python" "$HERE/scripts/make_i18n.py"
