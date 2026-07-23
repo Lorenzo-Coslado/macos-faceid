@@ -6,7 +6,7 @@ All notable changes to this project are documented here. The format is based on
 
 ## [Unreleased]
 
-## [1.0.0] — 2026-07-23
+## [1.0.0] - 2026-07-23
 
 ### Added
 
@@ -15,12 +15,12 @@ All notable changes to this project are documented here. The format is based on
 - Choice panel: Face ID / Touch ID / password.
 - Animated "Dynamic Island" HUD during the face scan.
 - Localization in 11 languages (follows the system language, English by default).
-- Self-contained, signed & notarized `.app` — no external download needed to run it.
+- Self-contained, signed & notarized `.app`, no external download needed to run it.
 - Launch at login via `SMAppService`.
 
 ### Security
 
-- The PAM rule is `sufficient`: any failure falls back to the password — no lockout.
+- The PAM rule is `sufficient`: any failure falls back to the password, no lockout.
 - Face embeddings stay local and never leave the machine.
 
 [Unreleased]: https://github.com/Lorenzo-Coslado/macos-faceid/compare/v1.0.0...HEAD

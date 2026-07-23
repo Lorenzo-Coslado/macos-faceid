@@ -1,6 +1,6 @@
 # Contributing to FaceID
 
-Thanks for your interest! This is a small, fun project — contributions are welcome.
+Thanks for your interest! This is a small, fun project, contributions are welcome.
 
 ## Ground rules
 
