@@ -1,0 +1,14 @@
+# Normalize line endings
+* text=auto eol=lf
+
+# Binary assets
+*.png binary
+*.gif binary
+*.icns binary
+*.onnx binary
+*.dmg binary
+
+# Keep GitHub's language stats meaningful
+i18n/** linguist-generated=true
+assets/demo.gif linguist-generated=true
+packaging/** linguist-vendored=true

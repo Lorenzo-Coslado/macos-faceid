@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build & test (macOS)
+    runs-on: macos-14
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Python dependencies
+        run: |
+          python -m venv .venv
+          ./.venv/bin/pip install --upgrade pip wheel
+          ./.venv/bin/pip install -r requirements.txt
+
+      - name: Download models
+        run: bash scripts/download-models.sh
+
+      - name: Generate assets (icons + translations)
+        run: |
+          ./.venv/bin/python scripts/make_icon.py
+          ./.venv/bin/python scripts/make_appicon.py
+          ./.venv/bin/python scripts/make_i18n.py
+
+      - name: Recognition self-test
+        run: ./.venv/bin/python -m faceid.selftest
+
+      - name: Build native helpers
+        run: bash scripts/build-helpers.sh
+
+      - name: Build PAM module
+        run: make -C pam
+
+      - name: Compile menu bar app
+        run: |
+          swiftc -O -swift-version 5 -o /tmp/FaceID \
+            menubar/Branding.swift menubar/Onboarding.swift \
+            menubar/SettingsView.swift menubar/FaceIDApp.swift \
+            -framework AppKit -framework SwiftUI \
+            -framework AVFoundation -framework ServiceManagement

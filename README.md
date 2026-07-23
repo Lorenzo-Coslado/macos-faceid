@@ -5,6 +5,7 @@
 **Unlock `sudo` with your face.** A native macOS menu bar app — face recognition,
 a choice panel, and a Dynamic Island-style scan animation.
 
+[![CI](https://github.com/Lorenzo-Coslado/macos-faceid/actions/workflows/ci.yml/badge.svg)](https://github.com/Lorenzo-Coslado/macos-faceid/actions/workflows/ci.yml)
 ![Platform](https://img.shields.io/badge/platform-macOS%2013%2B-black?logo=apple)
 ![Apple Silicon](https://img.shields.io/badge/arch-Apple%20Silicon-black)
 ![License](https://img.shields.io/badge/license-MIT-3ba55d)

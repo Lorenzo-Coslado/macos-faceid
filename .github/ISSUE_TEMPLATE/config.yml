@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 💬 Questions & ideas
+    url: https://github.com/Lorenzo-Coslado/macos-faceid/discussions
+    about: Ask questions or discuss ideas in Discussions.
+  - name: 🔒 Report a security issue
+    url: https://github.com/Lorenzo-Coslado/macos-faceid/security/advisories/new
+    about: Please report vulnerabilities privately, not as a public issue.

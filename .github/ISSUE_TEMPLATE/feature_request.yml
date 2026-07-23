@@ -1,0 +1,23 @@
+name: 💡 Feature request
+description: Suggest an idea for FaceID
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem would this solve?
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: Your idea
+    validations:
+      required: true
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Reality check
+      options:
+        - label: This does not rely on unlocking the macOS lock screen (blocked by macOS — see the FAQ).
+        - label: This does not present FaceID as a real security feature.
