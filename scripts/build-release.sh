@@ -31,9 +31,13 @@ echo "══ 1  Assemblage de l'app autonome ══"
 bash scripts/build-standalone.sh
 
 echo "══ 2  Signature inside-out (Developer ID + hardened runtime) ══"
-# a) dylibs/.so empaquetés par PyInstaller (sans entitlements)
-find "$APP/Contents/Resources/faceid" -type f \( -name "*.dylib" -o -name "*.so" \) -print0 \
-  | xargs -0 -I{} codesign --force --timestamp --options runtime --sign "$DEV_ID" {} 2>/dev/null
+# a) TOUS les Mach-O empaquetés par PyInstaller (dylibs, .so, binaire du
+#    Python.framework sans extension…), avec timestamp sécurisé.
+find "$APP/Contents/Resources/faceid" -type f -print0 | while IFS= read -r -d '' f; do
+  if file -b "$f" 2>/dev/null | grep -q "Mach-O"; then
+    codesign --force --timestamp --options runtime --sign "$DEV_ID" "$f"
+  fi
+done
 # b) exécutables + module PAM (avec entitlements caméra)
 for b in "$APP/Contents/Resources/faceid/faceid" \
          "$APP/Contents/Resources/helpers/touchid-helper" \
