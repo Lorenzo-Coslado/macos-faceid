@@ -10,6 +10,10 @@
 //   swiftc -O -o auth-modal auth-modal.swift -framework AppKit
 import AppKit
 
+// ---- localisation (anglais par défaut, français si le système est en FR) ----
+let isFR = (Locale.preferredLanguages.first ?? "en").hasPrefix("fr")
+func T(_ en: String, _ fr: String) -> String { isFR ? fr : en }
+
 // ---- arguments ----
 var timeoutS: Double = 90
 if let i = CommandLine.arguments.firstIndex(of: "--timeout"),
@@ -94,19 +98,19 @@ final class Delegate: NSObject, NSApplicationDelegate {
         icon.heightAnchor.constraint(equalToConstant: 72).isActive = true
 
         // Titre + sous-titre
-        let title = NSTextField(labelWithString: "Authentification requise")
+        let title = NSTextField(labelWithString: T("Authentication required", "Authentification requise"))
         title.font = .systemFont(ofSize: 15, weight: .semibold)
         title.alignment = .center
 
-        let subtitle = NSTextField(labelWithString: "sudo souhaite vérifier ton identité")
+        let subtitle = NSTextField(labelWithString: T("sudo wants to verify your identity", "sudo souhaite vérifier ton identité"))
         subtitle.font = .systemFont(ofSize: 11.5)
         subtitle.textColor = .secondaryLabelColor
         subtitle.alignment = .center
 
         // Boutons (principal en bas de pile visuelle inversée : Face ID en haut)
-        let faceBtn = makeButton("Utiliser Face ID", #selector(chooseFace), isDefault: true)
-        let touchBtn = makeButton("Utiliser l'empreinte", #selector(chooseTouch))
-        let pwdBtn = makeButton("Saisir le mot de passe", #selector(choosePassword),
+        let faceBtn = makeButton(T("Use Face ID", "Utiliser Face ID"), #selector(chooseFace), isDefault: true)
+        let touchBtn = makeButton(T("Use fingerprint", "Utiliser l'empreinte"), #selector(chooseTouch))
+        let pwdBtn = makeButton(T("Enter password", "Saisir le mot de passe"), #selector(choosePassword),
                                 key: "\u{1b}")   // Échap
 
         let stack = NSStackView(views: [icon, title, subtitle, faceBtn, touchBtn, pwdBtn])

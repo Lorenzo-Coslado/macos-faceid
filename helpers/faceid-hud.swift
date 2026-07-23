@@ -15,6 +15,9 @@
 import AppKit
 import QuartzCore
 
+let isFR = (Locale.preferredLanguages.first ?? "en").hasPrefix("fr")
+func T(_ en: String, _ fr: String) -> String { isFR ? fr : en }
+
 // ---------- couleurs ----------
 let GREEN = NSColor(calibratedRed: 0.525, green: 0.910, blue: 0.541, alpha: 1) // #86E88A
 let RED   = NSColor(calibratedRed: 1.0,   green: 0.353, blue: 0.322, alpha: 1) // #FF5A52
@@ -154,7 +157,7 @@ final class HUD: NSObject, NSApplicationDelegate {
         // label
         label = CATextLayer()
         label.frame = CGRect(x: PAD + ICON + 10, y: 0, width: W - (PAD + ICON + 10) - 12, height: H)
-        label.string = "Face ID…"
+        label.string = T("Face ID…", "Face ID…")
         label.fontSize = 14
         label.font = NSFont.systemFont(ofSize: 14, weight: .semibold)
         label.foregroundColor = NSColor.white.cgColor
@@ -206,7 +209,7 @@ final class HUD: NSObject, NSApplicationDelegate {
         guard !done else { return }
         done = true
         stopScanning()
-        label.string = "Déverrouillé"
+        label.string = T("Unlocked", "Déverrouillé")
 
         // face fade out
         fade(faceLayer, to: 0, dur: 0.2)
@@ -226,7 +229,7 @@ final class HUD: NSObject, NSApplicationDelegate {
         guard !done else { return }
         done = true
         stopScanning()
-        label.string = "Échec"
+        label.string = T("Failed", "Échec")
         circle.strokeColor = RED.cgColor
         mark.strokeColor = RED.cgColor
         // marque = croix

@@ -4,9 +4,9 @@
 
 # FaceID
 
-**Déverrouille `sudo` avec ton visage.**
-App macOS native dans la barre de menus — reconnaissance faciale **100 % locale**,
-un panneau de choix natif, et une capsule façon **Dynamic Island** pendant le scan.
+**Unlock `sudo` with your face.**
+A native macOS menu-bar app — **100 % on-device** face recognition, a proper
+choice panel, and a Dynamic Island-style scan animation.
 
 <br>
 
@@ -21,95 +21,95 @@ un panneau de choix natif, et une capsule façon **Dynamic Island** pendant le s
   <img src="https://img.shields.io/badge/Download%20for%20macOS-1d1d1f?style=for-the-badge&logo=apple&logoColor=white" alt="Download for macOS" height="46" />
 </a>
 
-<sub>Signée et notarisée par Apple — aucun avertissement Gatekeeper. Tu double-cliques, c'est tout.</sub>
+<sub>Signed &amp; notarized by Apple — no Gatekeeper warning. Just open it.</sub>
 
 <br><br>
 
-<img src="assets/demo.gif" width="640" alt="Scan Face ID puis déverrouillage" />
+<img src="assets/unlock.gif" width="560" alt="Face ID unlocking sudo" />
 
 </div>
 
 ---
 
-## Ce que c'est
+## What it is
 
-Tu tapes `sudo`, la caméra te reconnaît, et c'est déverrouillé — sans mot de passe.
-Parti d'un hack de week-end, c'est devenu une vraie petite app : enrôlement guidé,
-réglages, choix entre Face ID / Touch ID / mot de passe, le tout empaqueté dans un
-`.app` autonome. Rien ne quitte ton Mac, et `sudo` garde **toujours** le mot de passe
-en repli : impossible de te bloquer.
+You type `sudo`, the camera recognizes you, and it's unlocked — no password.
+What started as a weekend hack grew into a real little app: guided enrollment,
+settings, a choice between Face ID / Touch ID / password, all packed into a
+**self-contained `.app`**. Nothing leaves your Mac, and `sudo` always keeps your
+password as a fallback, so you can never lock yourself out.
 
 > [!IMPORTANT]
-> **C'est un projet fun, pas un outil de sécurité.** Une webcam 2D peut être trompée
-> par une photo — ce n'est **pas** plus sûr que Touch ID. Garde-le pour le confort du
-> terminal, pas pour protéger quoi que ce soit de sensible.
+> **This is a fun project, not a security product.** A 2D webcam can be fooled by a
+> photo — it is **not** more secure than Touch ID. Keep it for terminal convenience,
+> not for protecting anything sensitive.
 
-## Aperçu
+## Screenshots
 
 <table>
 <tr>
-<td width="50%" valign="top"><img src="assets/onboarding.png" alt="Enrôlement guidé" /></td>
-<td width="50%" valign="top"><img src="assets/modal.png" alt="Panneau de choix" /></td>
+<td width="50%"><img src="assets/onboarding.png" alt="Guided enrollment" /></td>
+<td width="50%"><img src="assets/modal.png" alt="Choice panel" /></td>
 </tr>
 <tr>
-<td align="center"><b>Enrôlement guidé</b><br><sub>Ton visage enregistré en quelques secondes.</sub></td>
-<td align="center"><b>Face ID · Empreinte · Mot de passe</b><br><sub>Un panneau natif à chaque <code>sudo</code>.</sub></td>
+<td align="center"><b>Guided enrollment</b><br><sub>Your face registered in a few seconds.</sub></td>
+<td align="center"><b>Face ID · Fingerprint · Password</b><br><sub>A native panel on every <code>sudo</code>.</sub></td>
 </tr>
 </table>
 
-## Installation
+## Install
 
-1. **[Télécharge `FaceID.dmg`](https://github.com/Lorenzo-Coslado/macos-faceid/releases/latest/download/FaceID.dmg)**, ouvre-le, glisse **FaceID** dans **Applications**.
-2. Lance **FaceID** — une petite icône apparaît dans la barre de menus.
-3. Clique dessus → **Configurer mon visage** (autorise la caméra).
-4. **Réglages → Activer Face ID pour sudo** (ton mot de passe admin, une fois).
-5. Teste :
+1. **[Download `FaceID.dmg`](https://github.com/Lorenzo-Coslado/macos-faceid/releases/latest/download/FaceID.dmg)**, open it, drag **FaceID** into **Applications**.
+2. Launch **FaceID** — a small face icon appears in your menu bar.
+3. Click it → **Set Up My Face** (allow the camera when asked).
+4. **Settings → Enable Face ID for sudo** (your admin password, once).
+5. Try it:
    ```bash
    sudo -k && sudo true
    ```
-   La caméra s'allume, te reconnaît, `sudo` passe. ✨
+   The camera lights up, recognizes you, and `sudo` unlocks. ✨
 
-Aucune autre installation : Python, OpenCV et les modèles sont **embarqués dans l'app**.
+Nothing else to install: Python, OpenCV and the models are **bundled inside the app**.
 
-## Comment ça marche
+## How it works
 
 ```
-sudo ─▶ module PAM (root) ──socket──▶ daemon (ta session, possède la caméra)
-        pam_faceid.so                   └─ YuNet (détection) + SFace (embeddings)
-                                             └─ similarité cosinus ▶ OK / FAIL
+sudo ─▶ PAM module (root) ──socket──▶ daemon (your session, owns the camera)
+        pam_faceid.so                   └─ YuNet (detect) + SFace (embeddings)
+                                             └─ cosine similarity ▶ OK / FAIL
 ```
 
-Un process root lancé par `sudo` n'a pas accès à la caméra (bloqué par TCC). Un petit
-**module PAM** délègue donc à un **daemon** dans ta session, qui détecte ton visage
-([YuNet](https://github.com/opencv/opencv_zoo)), calcule un embedding
-([SFace](https://github.com/opencv/opencv_zoo)) et le compare à ton visage enrôlé.
-La règle PAM est `sufficient` : en cas d'échec, elle **retombe sur le mot de passe**.
+A root process launched by `sudo` cannot reach the camera (blocked by TCC), so a tiny
+**PAM module** delegates to a **daemon** in your user session. It detects your face
+([YuNet](https://github.com/opencv/opencv_zoo)), computes an embedding
+([SFace](https://github.com/opencv/opencv_zoo)) and compares it to your enrolled face.
+The PAM rule is `sufficient`: on failure it **falls back to your password**.
 
-## Sécurité — franchement
+## Security — the honest version
 
-- **Anti-spoof faible.** Caméra RGB 2D → une photo peut tromper la reconnaissance.
-  C'est pour ça qu'Apple exige un capteur infrarouge (TrueDepth) pour le vrai Face ID.
-- **Le mot de passe marche toujours.** Règle `sufficient` : visage raté, daemon coupé
-  ou app supprimée → repli mot de passe. Aucun lockout, jamais.
-- **Local, point.** Tes embeddings vivent dans `~/Library/Application Support/faceid`
-  et ne quittent jamais ta machine. FileVault au démarrage reste au mot de passe.
+- **Weak anti-spoofing.** An RGB 2D webcam can be tricked by a photo. That's exactly
+  why Apple requires an IR (TrueDepth) sensor for real Face ID.
+- **Your password always works.** The `sufficient` rule means a failed match, a
+  stopped daemon, or a deleted app all fall back to your password. No lockout, ever.
+- **Local only.** Your embeddings live in `~/Library/Application Support/faceid` and
+  never leave your machine. FileVault at boot still uses your password.
 
-## Compiler depuis les sources
+## Build from source
 
 <details>
-<summary>Pour les développeurs</summary>
+<summary>For developers</summary>
 
-Prérequis : macOS (Apple Silicon), Xcode Command Line Tools (`xcode-select --install`),
-Python 3.12 (`brew install python@3.12`).
+Requirements: macOS (Apple Silicon), Xcode Command Line Tools
+(`xcode-select --install`), Python 3.12 (`brew install python@3.12`).
 
 ```bash
 git clone https://github.com/Lorenzo-Coslado/macos-faceid.git
 cd macos-faceid
-./install.sh                    # venv, deps, modèles, helpers, app (mode dev)
+./install.sh                    # venv, deps, models, helpers, dev app
 ```
 
-Produire le DMG signé + notarisé (nécessite un certificat *Developer ID Application*
-et un profil `notarytool` nommé `faceid-notary`) :
+Produce the signed &amp; notarized DMG (needs a *Developer ID Application* certificate
+and a `notarytool` keychain profile named `faceid-notary`):
 
 ```bash
 ./scripts/build-release.sh
@@ -118,18 +118,18 @@ et un profil `notarytool` nommé `faceid-notary`) :
 
 ## FAQ
 
-**Ça déverrouille l'écran verrouillé / la session ?**
-Non. macOS protège ce chemin (SIP + restrictions Apple sur les plugins d'auth tiers,
-confirmé par Apple DTS). Pour le déverrouillage mains-libres, utilise l'**Apple Watch**.
-L'exploration complète est dans [`LOCK-SCREEN-PLAN.md`](LOCK-SCREEN-PLAN.md).
+**Can it unlock the lock screen / login window?**
+No. macOS protects the screen-unlock path (SIP + Apple's restrictions on third-party
+auth plugins — confirmed by Apple DTS). For hands-free unlock, use an **Apple Watch**.
+The full write-up is in [`LOCK-SCREEN-PLAN.md`](LOCK-SCREEN-PLAN.md).
 
-**J'aurai un avertissement « développeur non identifié » ?**
-Non — la version téléchargée est signée Developer ID et notarisée par Apple.
+**Will I get an “unidentified developer” warning?**
+No — the download is Developer ID-signed and notarized by Apple.
 
-**Désinstaller ?**
-Réglages → désactiver Face ID pour sudo, quitter l'app, jeter `FaceID.app`. Pour
-effacer ton visage : `rm -rf ~/Library/Application\ Support/faceid`.
+**How do I uninstall?**
+Settings → disable Face ID for sudo, quit the app, move `FaceID.app` to the Trash.
+To wipe your face: `rm -rf ~/Library/Application\ Support/faceid`.
 
-## Licence
+## License
 
-[MIT](LICENSE) · fait pour le fun · aucune garantie.
+[MIT](LICENSE) · made for fun · no warranty.
