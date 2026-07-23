@@ -9,14 +9,14 @@ DEST="$HERE/vendor/sparkle"
 FRAMEWORK="$DEST/Sparkle.framework"
 
 if [ -d "$FRAMEWORK" ]; then
-  echo "Sparkle $VER déjà présent ($DEST)"
+  echo "Sparkle ${VER} déjà présent (${DEST})"
   exit 0
 fi
 
 mkdir -p "$DEST"
-TARBALL="/tmp/Sparkle-$VER.tar.xz"
-URL="https://github.com/sparkle-project/Sparkle/releases/download/$VER/Sparkle-$VER.tar.xz"
-echo "Téléchargement de Sparkle $VER…"
+TARBALL="/tmp/Sparkle-${VER}.tar.xz"
+URL="https://github.com/sparkle-project/Sparkle/releases/download/${VER}/Sparkle-${VER}.tar.xz"
+echo "Téléchargement de Sparkle ${VER}…"
 curl -fL "$URL" -o "$TARBALL"
 tar -xJf "$TARBALL" -C "$DEST"
-echo "✅ Sparkle $VER extrait dans $DEST"
+echo "✅ Sparkle ${VER} extrait dans ${DEST}"
