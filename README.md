@@ -8,6 +8,7 @@ Unlock `sudo` with your face. A native macOS menu bar app that runs face
 recognition fully on your Mac.
 
 <p>
+  <a href="https://github.com/Lorenzo-Coslado/macos-faceid/releases"><img src="https://img.shields.io/github/downloads/Lorenzo-Coslado/macos-faceid/total?label=downloads&color=3ba55d&logo=github&logoColor=white" alt="Downloads" /></a>
   <a href="https://github.com/Lorenzo-Coslado/macos-faceid/actions/workflows/ci.yml"><img src="https://github.com/Lorenzo-Coslado/macos-faceid/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
   <img src="https://img.shields.io/badge/macOS-13+-1d1d1f?logo=apple" alt="macOS 13+" />
   <img src="https://img.shields.io/badge/Apple%20Silicon-1d1d1f" alt="Apple Silicon" />
