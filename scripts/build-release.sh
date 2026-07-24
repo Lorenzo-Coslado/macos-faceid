@@ -75,10 +75,10 @@ hdiutil create -volname "Mugshot" -srcfolder "$APP" -ov -format UDZO "$DMG" >/de
 echo "══ 5  Notarisation (upload + attente Apple) ══"
 xcrun notarytool submit "$DMG" --keychain-profile "$NOTARY_PROFILE" --wait
 
-echo "══ 6  Staple (app puis DMG) ══"
+echo "══ 6  Staple ══"
+# On staple le DMG QUI A ÉTÉ SOUMIS (pas un rebuild : un conteneur recréé après coup
+# n'a pas de ticket chez Apple → 'could not find ticket'). L'app est staplée en plus.
 xcrun stapler staple "$APP"
-rm -f "$DMG"
-hdiutil create -volname "Mugshot" -srcfolder "$APP" -ov -format UDZO "$DMG" >/dev/null
 xcrun stapler staple "$DMG"
 
 echo
