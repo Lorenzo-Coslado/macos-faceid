@@ -54,8 +54,18 @@ macOS asks). It takes a few seconds.
 
 ### 3. Turn on Face ID for sudo
 
-Open **Settings** from the menu and switch on **Enable Face ID for sudo**. Enter your
-admin password once so the app can install its `sudo` component.
+Open **Settings** from the menu and switch on **Enable Face ID for sudo**. Recent macOS
+versions lock down changes to the `sudo` configuration, so Mugshot uses a small signed
+helper and walks you through two one-time approvals:
+
+1. **Allow the helper to run.** macOS asks you to approve it in **Settings › General ›
+   Login Items**. Turn it on.
+2. **Grant Full Disk Access.** macOS keeps the `sudo` PAM file behind Full Disk Access,
+   so the helper needs it to write that one file. Mugshot opens the right pane for you;
+   enable **MugshotHelper** in the list. It is only used to set up `sudo`, and nothing
+   ever leaves your Mac.
+
+Flip the toggle on again and you are set. `sudo` always keeps your password as a fallback.
 
 <div align="center"><img src="assets/settings.png" width="760" alt="Settings window" /></div>
 
@@ -143,6 +153,15 @@ you often, re-enroll in better lighting, or lower the sensitivity in Settings.
 
 No. Detection, recognition and your enrolled face all stay on your Mac, in
 `~/Library/Application Support/faceid`. There is no network code.
+</details>
+
+<details>
+<summary><b>Why does it ask for Full Disk Access?</b></summary>
+
+Only to turn on `sudo`. Recent macOS versions keep the `sudo` PAM file behind Full Disk
+Access, so Mugshot's small signed helper needs it to write that single file. It is not
+used for anything else, nothing ever leaves your Mac, and if you never enable Face ID for
+sudo it is never requested.
 </details>
 
 <details>
