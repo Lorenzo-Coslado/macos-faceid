@@ -53,8 +53,16 @@ jobs:
         run: |
           swiftc -O -swift-version 5 -o /tmp/Mugshot \
             menubar/Branding.swift menubar/Onboarding.swift \
-            menubar/SettingsView.swift menubar/FaceIDApp.swift \
+            menubar/SettingsView.swift menubar/HelperManager.swift \
+            helpertool/HelperProtocol.swift menubar/FaceIDApp.swift \
             -framework AppKit -framework SwiftUI \
             -framework AVFoundation -framework ServiceManagement \
             -F vendor/sparkle -framework Sparkle \
             -Xlinker -rpath -Xlinker @executable_path/../Frameworks
+
+      - name: Compile privileged helper
+        run: |
+          swiftc -O -swift-version 5 -o /tmp/MugshotHelper \
+            helpertool/main.swift helpertool/HelperProtocol.swift \
+            helpertool/CodesignCheck.swift \
+            -framework Foundation -framework Security
