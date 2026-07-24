@@ -23,6 +23,19 @@ func resourcesDir() -> URL {
 }
 
 final class HelperDelegate: NSObject, NSXPCListenerDelegate, MugshotHelperProtocol {
+    // Auto-arrêt après inactivité : un process root ne doit pas traîner, ET ça permet
+    // qu'un nouvel octroi TCC (Accès complet au disque) soit pris en compte au relancement.
+    private let idleQueue = DispatchQueue(label: "com.lorenzo.Mugshot.Helper.idle")
+    private var idleWork: DispatchWorkItem?
+    private func resetIdle() {
+        idleQueue.async {
+            self.idleWork?.cancel()
+            let w = DispatchWorkItem { exit(0) }
+            self.idleWork = w
+            self.idleQueue.asyncAfter(deadline: .now() + 20, execute: w)
+        }
+    }
+
     func listener(_ listener: NSXPCListener, shouldAcceptNewConnection c: NSXPCConnection) -> Bool {
         guard (try? CodesignCheck.codeSigningMatches(pid: c.processIdentifier)) == true else {
             NSLog("MugshotHelper: connexion refusée (signature client invalide)")
@@ -31,6 +44,7 @@ final class HelperDelegate: NSObject, NSXPCListenerDelegate, MugshotHelperProtoc
         c.exportedInterface = NSXPCInterface(with: MugshotHelperProtocol.self)
         c.exportedObject = self
         c.resume()
+        resetIdle()
         return true
     }
 

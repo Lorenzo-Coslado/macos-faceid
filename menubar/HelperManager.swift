@@ -3,6 +3,7 @@
 // sur macOS 26 (authtrampoline casse l'attribution → écriture /etc/pam.d refusée).
 import Foundation
 import ServiceManagement
+import AppKit
 
 final class HelperManager {
     static let shared = HelperManager()
@@ -11,6 +12,18 @@ final class HelperManager {
     private var service: SMAppService { SMAppService.daemon(plistName: plistName) }
 
     var isEnabled: Bool { service.status == .enabled }
+
+    /// Chemin du binaire du daemon (à ajouter à l'Accès complet au disque sur macOS 26).
+    var helperPath: String {
+        Bundle.main.bundleURL.appendingPathComponent("Contents/MacOS/MugshotHelper").path
+    }
+
+    /// Ouvre le volet Réglages › Confidentialité › Accès complet au disque.
+    func openFullDiskAccess() {
+        if let u = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles") {
+            NSWorkspace.shared.open(u)
+        }
+    }
 
     enum Reg { case enabled, needsApproval, failed(String) }
 

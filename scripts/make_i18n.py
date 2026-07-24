@@ -440,6 +440,30 @@ TR = {
         "nl": "Geannuleerd: %@", "ja": "キャンセルされました: %@",
         "zh-Hans": "已取消：%@", "ko": "취소됨: %@", "ru": "Отменено: %@",
     },
+    "fda.needed": {
+        "en": "Full Disk Access needed (see the window).",
+        "fr": "Accès complet au disque requis (voir la fenêtre).",
+    },
+    "fda.title": {
+        "en": "Full Disk Access required",
+        "fr": "Accès complet au disque requis",
+    },
+    "fda.body": {
+        "en": "On macOS 26, enabling Face ID for sudo needs Full Disk Access for "
+              "Mugshot's helper.\n\n1. Click Open Settings below.\n2. In the list, "
+              "turn on “MugshotHelper” (or add it with +, path below):\n%@\n\n"
+              "3. Come back here and toggle it on again.",
+        "fr": "Sur macOS 26, activer Face ID pour sudo nécessite l'Accès complet au "
+              "disque pour l'assistant de Mugshot.\n\n1. Clique « Ouvrir les Réglages » "
+              "ci-dessous.\n2. Dans la liste, active « MugshotHelper » (ou ajoute-le "
+              "avec +, chemin ci-dessous) :\n%@\n\n3. Reviens ici et réactive le toggle.",
+    },
+    "fda.open": {
+        "en": "Open Settings", "fr": "Ouvrir les Réglages",
+    },
+    "fda.cancel": {
+        "en": "Later", "fr": "Plus tard",
+    },
     "set.msg.approve": {
         "en": "Approve Mugshot in Settings › General › Login Items, then toggle again.",
         "fr": "Autorise Mugshot dans Réglages › Général › Ouverture, puis réactive.",

@@ -74,6 +74,11 @@ cp -R "$HERE/vendor/sparkle/Sparkle.framework" "$APP/Contents/Frameworks/"
 # daemon privilégié (SMAppService) : plist du LaunchDaemon
 mkdir -p "$APP/Contents/Library/LaunchDaemons"
 cp "$HERE/helpertool/com.lorenzo.Mugshot.Helper.plist" "$APP/Contents/Library/LaunchDaemons/"
+# module PAM + scripts privilégiés : le daemon les lit depuis Resources (comme la release)
+make -C "$HERE/pam" >/dev/null 2>&1 || true
+mkdir -p "$APP/Contents/Resources/pam" "$APP/Contents/Resources/scripts"
+cp "$HERE/pam/pam_faceid.so" "$APP/Contents/Resources/pam/" 2>/dev/null || true
+cp "$HERE/scripts/pam-install-root.sh" "$HERE/scripts/pam-uninstall-root.sh" "$APP/Contents/Resources/scripts/"
 
 echo "== Traductions (.lproj) =="
 "$HERE/.venv/bin/python" "$HERE/scripts/make_i18n.py"

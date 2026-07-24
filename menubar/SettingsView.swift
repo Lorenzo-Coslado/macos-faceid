@@ -156,11 +156,29 @@ struct SettingsView: View {
         case .enabled: break
         }
         let onDone: (Bool, String) -> Void = { ok, msg in
-            finishSudo(ok ? (want ? L("set.msg.sudo.on") : L("set.msg.sudo.off"))
-                          : String(format: L("set.msg.cancelled"), msg))
+            // macOS 26 : le daemon root a besoin de l'Accès complet au disque pour
+            // écrire /etc/pam.d. Si l'échec est un « Operation not permitted », on guide.
+            if !ok && msg.lowercased().contains("not permitted") {
+                finishSudo(L("fda.needed"))
+                showFDAAlert()
+            } else {
+                finishSudo(ok ? (want ? L("set.msg.sudo.on") : L("set.msg.sudo.off"))
+                              : String(format: L("set.msg.cancelled"), msg))
+            }
         }
         if want { HelperManager.shared.enableSudo(onDone) }
         else    { HelperManager.shared.disableSudo(onDone) }
+    }
+
+    private func showFDAAlert() {
+        let a = NSAlert()
+        a.messageText = L("fda.title")
+        a.informativeText = String(format: L("fda.body"), HelperManager.shared.helperPath)
+        a.addButton(withTitle: L("fda.open"))
+        a.addButton(withTitle: L("fda.cancel"))
+        if a.runModal() == .alertFirstButtonReturn {
+            HelperManager.shared.openFullDiskAccess()
+        }
     }
 
     private func finishSudo(_ msg: String) {

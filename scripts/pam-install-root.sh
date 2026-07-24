@@ -16,13 +16,18 @@ cp "$MODULE_SRC" "$MODULE_DST"
 chown root:wheel "$MODULE_DST"
 chmod 644 "$MODULE_DST"
 
-if [ ! -f /etc/pam.d/sudo_local ]; then
+# Écriture EN PLACE (printf >), robuste : gère fichier absent / vide / existant, et
+# évite le sed (fragile sur fichier vide, et son temp+rename plus risqué côté SIP).
+# Notre ligne en tête, suivie de tout contenu existant qui n'est pas à nous.
+existing=""
+[ -f /etc/pam.d/sudo_local ] && existing="$(grep -v pam_faceid /etc/pam.d/sudo_local 2>/dev/null || true)"
+if [ -n "$existing" ]; then
+  printf '%s\n%s\n' "$LINE" "$existing" > /etc/pam.d/sudo_local
+else
   printf '%s\n' "$LINE" > /etc/pam.d/sudo_local
-elif ! grep -q pam_faceid /etc/pam.d/sudo_local; then
-  sed -i '' "1i\\
-${LINE}
-" /etc/pam.d/sudo_local
 fi
+chown root:wheel /etc/pam.d/sudo_local 2>/dev/null || true
+chmod 644 /etc/pam.d/sudo_local 2>/dev/null || true
 
 # Optionnel : si Touch ID système est présent dans /etc/pam.d/sudo, on tente de le
 # neutraliser pour que le modal de l'app passe en premier. NON-BLOQUANT : /etc/pam.d/sudo
