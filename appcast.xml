@@ -1,9 +1,15 @@
-<?xml version="1.0" encoding="utf-8"?>
-<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/">
-  <channel>
-    <title>Mugshot</title>
-    <link>https://raw.githubusercontent.com/Lorenzo-Coslado/macos-faceid/main/appcast.xml</link>
-    <description>Mises à jour de Mugshot</description>
-    <language>en</language>
-  </channel>
+<?xml version="1.0" standalone="yes"?>
+<rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" version="2.0">
+    <channel>
+        <title>Mugshot</title>
+        <item>
+            <title>1.0.1</title>
+            <pubDate>Fri, 24 Jul 2026 10:54:10 -0400</pubDate>
+            <sparkle:version>2</sparkle:version>
+            <sparkle:shortVersionString>1.0.1</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <enclosure url="https://github.com/Lorenzo-Coslado/macos-faceid/releases/download/v1.0.1/Mugshot.dmg" length="104916967" type="application/octet-stream" sparkle:edSignature="KXp+jX47TDgHSc05crWTI59pqPcbsnAdSwZQ2dpBZQd82FwZTIT5Iq5YERPFxwijA3i8yBT5ydZ6c9E/yoCjBg=="/>
+        </item>
+    </channel>
 </rss>
