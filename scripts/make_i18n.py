@@ -440,6 +440,19 @@ TR = {
         "nl": "Geannuleerd: %@", "ja": "キャンセルされました: %@",
         "zh-Hans": "已取消：%@", "ko": "취소됨: %@", "ru": "Отменено: %@",
     },
+    "set.msg.approve": {
+        "en": "Approve Mugshot in Settings › General › Login Items, then toggle again.",
+        "fr": "Autorise Mugshot dans Réglages › Général › Ouverture, puis réactive.",
+        "es": "Autoriza Mugshot en Ajustes › General › Ítems de inicio, luego reactiva.",
+        "de": "Erlaube Mugshot in Einstellungen › Allgemein › Anmeldeobjekte, dann erneut.",
+        "it": "Autorizza Mugshot in Impostazioni › Generali › Elementi login, poi riattiva.",
+        "pt-BR": "Autorize o Mugshot em Ajustes › Geral › Itens de início e ative de novo.",
+        "nl": "Sta Mugshot toe in Instellingen › Algemeen › Inlogitems, dan opnieuw.",
+        "ja": "設定 › 一般 › ログイン項目でMugshotを許可し、もう一度切り替えてください。",
+        "zh-Hans": "在设置 › 通用 › 登录项中允许 Mugshot，然后重新开启。",
+        "ko": "설정 › 일반 › 로그인 항목에서 Mugshot을 허용한 뒤 다시 켜세요.",
+        "ru": "Разрешите Mugshot в Настройках › Основные › Объекты входа, затем снова.",
+    },
 }
 
 

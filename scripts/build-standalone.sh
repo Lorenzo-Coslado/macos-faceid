@@ -41,10 +41,15 @@ echo "══ 3/6  Compilation de l'app Swift ══"
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$RES"
 swiftc -O -swift-version 5 -o "$APP/Contents/MacOS/Mugshot" \
-  menubar/Branding.swift menubar/Onboarding.swift menubar/SettingsView.swift menubar/FaceIDApp.swift \
+  menubar/Branding.swift menubar/Onboarding.swift menubar/SettingsView.swift \
+  menubar/HelperManager.swift helpertool/HelperProtocol.swift menubar/FaceIDApp.swift \
   -framework AppKit -framework SwiftUI -framework AVFoundation -framework ServiceManagement \
   -F "$HERE/vendor/sparkle" -framework Sparkle \
   -Xlinker -rpath -Xlinker @executable_path/../Frameworks
+# daemon privilégié root (SMAppService + XPC)
+swiftc -O -swift-version 5 -o "$APP/Contents/MacOS/MugshotHelper" \
+  helpertool/main.swift helpertool/HelperProtocol.swift helpertool/CodesignCheck.swift \
+  -framework Foundation -framework Security
 
 echo "══ 4/6  Info.plist ══"
 cat > "$APP/Contents/Info.plist" <<PLIST
@@ -74,6 +79,8 @@ PLIST
 echo "══ 5/6  Ressources embarquées ══"
 mkdir -p "$APP/Contents/Frameworks"
 cp -R "$HERE/vendor/sparkle/Sparkle.framework" "$APP/Contents/Frameworks/"   # auto-update
+mkdir -p "$APP/Contents/Library/LaunchDaemons"
+cp "$HERE/helpertool/com.lorenzo.Mugshot.Helper.plist" "$APP/Contents/Library/LaunchDaemons/"  # daemon root
 cp "$HERE/assets/Mugshot.icns" "$RES/Mugshot.icns"
 cp "$HERE/assets/faceid-icon.png" "$RES/faceid-icon.png"
 cp "$HERE/assets/menubar-icon.png" "$RES/menubar-icon.png"

@@ -131,35 +131,40 @@ struct SettingsView: View {
 
     private func applyDaemon() { onApply() }
 
+    // Active/désactive sudo via le daemon root (SMAppService + XPC). L'ancienne
+    // voie osascript est cassée sur macOS 26 (authtrampoline → écriture refusée).
     private func toggleSudo(_ want: Bool) {
         busy = true; note = ""
-        DispatchQueue.global().async {
-            var ok = false; var msg = ""
-            if want {
-                // Dev : compiler le module. Bundle : il est déjà précompilé.
-                var built = true
-                if !Paths.bundled {
-                    let build = Run.bashUser("make -C \(sh(Paths.root))/pam")
-                    built = build.code == 0
-                    if !built { msg = String(format: L("set.msg.buildfail"), build.out) }
+        // Dev : compiler le module d'abord (hors main). Bundle : déjà précompilé.
+        if want && !Paths.bundled {
+            DispatchQueue.global().async {
+                let build = Run.bashUser("make -C \(sh(Paths.root))/pam")
+                DispatchQueue.main.async {
+                    if build.code != 0 { finishSudo(String(format: L("set.msg.buildfail"), build.out)) }
+                    else { proceedSudo(want) }
                 }
-                if built {
-                    let r = Run.admin("bash \(sh(Paths.script("pam-install-root.sh")))")
-                    ok = r.ok
-                    msg = r.ok ? L("set.msg.sudo.on") : String(format: L("set.msg.cancelled"), r.msg)
-                }
-            } else {
-                let r = Run.admin("bash \(sh(Paths.script("pam-uninstall-root.sh")))")
-                ok = r.ok
-                msg = r.ok ? L("set.msg.sudo.off") : String(format: L("set.msg.cancelled"), r.msg)
             }
-            DispatchQueue.main.async {
-                busy = false
-                note = msg
-                sudoActive = Status.sudoActive
-                _ = ok
-            }
+        } else {
+            proceedSudo(want)
         }
+    }
+
+    private func proceedSudo(_ want: Bool) {
+        switch HelperManager.shared.ensureRegistered() {
+        case .needsApproval: finishSudo(L("set.msg.approve")); return
+        case .failed(let e): finishSudo(String(format: L("set.msg.cancelled"), e)); return
+        case .enabled: break
+        }
+        let onDone: (Bool, String) -> Void = { ok, msg in
+            finishSudo(ok ? (want ? L("set.msg.sudo.on") : L("set.msg.sudo.off"))
+                          : String(format: L("set.msg.cancelled"), msg))
+        }
+        if want { HelperManager.shared.enableSudo(onDone) }
+        else    { HelperManager.shared.disableSudo(onDone) }
+    }
+
+    private func finishSudo(_ msg: String) {
+        busy = false; note = msg; sudoActive = Status.sudoActive
     }
 
     private func sh(_ s: String) -> String { "'\(s.replacingOccurrences(of: "'", with: "'\\''"))'" }

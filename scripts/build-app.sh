@@ -71,21 +71,34 @@ cp "$HERE/assets/faceid-icon.png" "$APP/Contents/Resources/faceid-icon.png"
 cp "$HERE/assets/menubar-icon.png" "$APP/Contents/Resources/menubar-icon.png"
 mkdir -p "$APP/Contents/Frameworks"
 cp -R "$HERE/vendor/sparkle/Sparkle.framework" "$APP/Contents/Frameworks/"
+# daemon privilégié (SMAppService) : plist du LaunchDaemon
+mkdir -p "$APP/Contents/Library/LaunchDaemons"
+cp "$HERE/helpertool/com.lorenzo.Mugshot.Helper.plist" "$APP/Contents/Library/LaunchDaemons/"
 
 echo "== Traductions (.lproj) =="
 "$HERE/.venv/bin/python" "$HERE/scripts/make_i18n.py"
 cp -R "$HERE"/i18n/*.lproj "$APP/Contents/Resources/"
 
-echo "== Compilation Swift (4 fichiers) =="
+echo "== Compilation de l'app =="
 swiftc -O -swift-version 5 \
   -o "$APP/Contents/MacOS/Mugshot" \
   "$HERE/menubar/Branding.swift" \
   "$HERE/menubar/Onboarding.swift" \
   "$HERE/menubar/SettingsView.swift" \
+  "$HERE/menubar/HelperManager.swift" \
+  "$HERE/helpertool/HelperProtocol.swift" \
   "$HERE/menubar/FaceIDApp.swift" \
   -framework AppKit -framework SwiftUI -framework AVFoundation -framework ServiceManagement \
   -F "$HERE/vendor/sparkle" -framework Sparkle \
   -Xlinker -rpath -Xlinker @executable_path/../Frameworks
+
+echo "== Compilation du daemon privilégié (MugshotHelper) =="
+swiftc -O -swift-version 5 \
+  -o "$APP/Contents/MacOS/MugshotHelper" \
+  "$HERE/helpertool/main.swift" \
+  "$HERE/helpertool/HelperProtocol.swift" \
+  "$HERE/helpertool/CodesignCheck.swift" \
+  -framework Foundation -framework Security
 
 echo "== Scripts exécutables =="
 chmod +x "$HERE"/scripts/*.sh 2>/dev/null || true

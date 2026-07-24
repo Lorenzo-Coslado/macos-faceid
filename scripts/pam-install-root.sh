@@ -24,10 +24,22 @@ ${LINE}
 " /etc/pam.d/sudo_local
 fi
 
-# neutralise le Touch ID système pour que le modal de l'app passe en premier
-if grep -qE '^auth[[:space:]]+sufficient[[:space:]]+pam_tid\.so' /etc/pam.d/sudo; then
-  cp -n /etc/pam.d/sudo /etc/pam.d/sudo.bak-faceid || true
-  sed -i '' -E 's/^(auth[[:space:]]+sufficient[[:space:]]+pam_tid\.so)/#faceid# \1/' /etc/pam.d/sudo
+# Optionnel : si Touch ID système est présent dans /etc/pam.d/sudo, on tente de le
+# neutraliser pour que le modal de l'app passe en premier. NON-BLOQUANT : /etc/pam.d/sudo
+# est un fichier système souvent protégé par SIP ; un échec ici ne doit PAS casser
+# l'installation (le coeur — module + sudo_local — est déjà en place). On réécrit en
+# place (cat >) pour préserver le propriétaire root:wheel (sed -i le cassait).
+if grep -qE '^auth[[:space:]]+sufficient[[:space:]]+pam_tid\.so' /etc/pam.d/sudo 2>/dev/null; then
+  cp -n /etc/pam.d/sudo /etc/pam.d/sudo.bak-faceid 2>/dev/null || true
+  tmp="$(mktemp)"
+  if sed -E 's/^(auth[[:space:]]+sufficient[[:space:]]+pam_tid\.so)/#faceid# \1/' /etc/pam.d/sudo > "$tmp" \
+     && cat "$tmp" > /etc/pam.d/sudo 2>/dev/null; then
+    chown root:wheel /etc/pam.d/sudo 2>/dev/null || true
+    chmod 444 /etc/pam.d/sudo 2>/dev/null || true
+  else
+    echo "note: Touch ID système non neutralisé (/etc/pam.d/sudo protégé) — sans impact" >&2
+  fi
+  rm -f "$tmp"
 fi
 
 echo "OK"
