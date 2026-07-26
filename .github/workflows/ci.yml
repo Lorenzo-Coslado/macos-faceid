@@ -10,10 +10,14 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  MACOSX_DEPLOYMENT_TARGET: "15.0"
+  MUGSHOT_SWIFT_TARGET: arm64-apple-macosx15.0
+
 jobs:
   build:
     name: Build & test (macOS)
-    runs-on: macos-14
+    runs-on: macos-15
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
@@ -51,18 +55,18 @@ jobs:
 
       - name: Compile menu bar app
         run: |
-          swiftc -O -swift-version 5 -o /tmp/Mugshot \
+          swiftc -O -swift-version 5 -target "$MUGSHOT_SWIFT_TARGET" -o /tmp/Mugshot \
             menubar/Branding.swift menubar/Onboarding.swift \
             menubar/SettingsView.swift menubar/HelperManager.swift \
             helpertool/HelperProtocol.swift menubar/FaceIDApp.swift \
             -framework AppKit -framework SwiftUI \
-            -framework AVFoundation -framework ServiceManagement \
+            -framework AVFoundation -framework ServiceManagement -framework Security \
             -F vendor/sparkle -framework Sparkle \
             -Xlinker -rpath -Xlinker @executable_path/../Frameworks
 
       - name: Compile privileged helper
         run: |
-          swiftc -O -swift-version 5 -o /tmp/MugshotHelper \
+          swiftc -O -swift-version 5 -target "$MUGSHOT_SWIFT_TARGET" -o /tmp/MugshotHelper \
             helpertool/main.swift helpertool/HelperProtocol.swift \
             helpertool/CodesignCheck.swift \
             -framework Foundation -framework Security

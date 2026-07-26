@@ -2,7 +2,7 @@
 # Télécharge les modèles ONNX (YuNet + SFace) depuis OpenCV Zoo.
 set -euo pipefail
 
-DEST="${HOME}/Library/Application Support/faceid/models"
+DEST="${FACEID_MODELS_DIR:-${HOME}/Library/Application Support/faceid/models}"
 mkdir -p "$DEST"
 
 BASE="https://github.com/opencv/opencv_zoo/raw/main/models"

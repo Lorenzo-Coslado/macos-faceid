@@ -5,14 +5,16 @@
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+source "$HERE/scripts/macos-target.sh"
 cd "$HERE"
 PY="$HERE/.venv/bin/python"
+export PYINSTALLER_CONFIG_DIR="${PYINSTALLER_CONFIG_DIR:-/tmp/mugshot-pyinstaller}"
 APP="$HERE/dist/Mugshot.app"
 RES="$APP/Contents/Resources"
 BUNDLE_ID="com.lorenzo.Mugshot"
 MARKETING_VERSION="${MARKETING_VERSION:-1.0}"   # ex: 1.0.1 (surchargé par release.sh)
 BUILD_VERSION="${BUILD_VERSION:-1}"             # entier monotone (Sparkle compare ceci)
-MODELS="$HOME/Library/Application Support/faceid/models"
+MODELS="${FACEID_MODELS_DIR:-$HOME/Library/Application Support/faceid/models}"
 
 echo "══ 1/6  Prérequis (modèles, helpers, module PAM, assets, i18n) ══"
 [ -f "$MODELS/face_recognition_sface_2021dec.onnx" ] || bash scripts/download-models.sh
@@ -29,7 +31,10 @@ for sz in 16 32 128 256 512; do
   sips -z $((sz*2)) $((sz*2)) "$SRC" --out "$ICONSET/icon_${sz}x${sz}@2x.png" >/dev/null
 done
 cp "$SRC" "$ICONSET/icon_512x512@2x.png"
-iconutil -c icns "$ICONSET" -o "$HERE/assets/Mugshot.icns"
+if ! iconutil -c icns "$ICONSET" -o "$HERE/assets/Mugshot.icns"; then
+  [ -f "$HERE/assets/Mugshot.icns" ] || exit 1
+  echo "Avertissement: iconutil a échoué; réutilisation de assets/Mugshot.icns" >&2
+fi
 
 echo "══ 2/6  Moteur Python autonome (PyInstaller) ══"
 rm -rf packaging/dist packaging/build packaging/*.spec
@@ -40,14 +45,14 @@ rm -rf packaging/dist packaging/build packaging/*.spec
 echo "══ 3/6  Compilation de l'app Swift ══"
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$RES"
-swiftc -O -swift-version 5 -o "$APP/Contents/MacOS/Mugshot" \
+swiftc -O -swift-version 5 -target "$MUGSHOT_SWIFT_TARGET" -o "$APP/Contents/MacOS/Mugshot" \
   menubar/Branding.swift menubar/Onboarding.swift menubar/SettingsView.swift \
   menubar/HelperManager.swift helpertool/HelperProtocol.swift menubar/FaceIDApp.swift \
-  -framework AppKit -framework SwiftUI -framework AVFoundation -framework ServiceManagement \
+  -framework AppKit -framework SwiftUI -framework AVFoundation -framework ServiceManagement -framework Security \
   -F "$HERE/vendor/sparkle" -framework Sparkle \
   -Xlinker -rpath -Xlinker @executable_path/../Frameworks
 # daemon privilégié root (SMAppService + XPC)
-swiftc -O -swift-version 5 -o "$APP/Contents/MacOS/MugshotHelper" \
+swiftc -O -swift-version 5 -target "$MUGSHOT_SWIFT_TARGET" -o "$APP/Contents/MacOS/MugshotHelper" \
   helpertool/main.swift helpertool/HelperProtocol.swift helpertool/CodesignCheck.swift \
   -framework Foundation -framework Security
 
@@ -66,7 +71,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
   <key>CFBundleShortVersionString</key> <string>${MARKETING_VERSION}</string>
   <key>CFBundleVersion</key>         <string>${BUILD_VERSION}</string>
   <key>LSUIElement</key>             <true/>
-  <key>LSMinimumSystemVersion</key>  <string>13.0</string>
+  <key>LSMinimumSystemVersion</key>  <string>${MACOSX_DEPLOYMENT_TARGET}</string>
   <key>SUFeedURL</key>               <string>https://raw.githubusercontent.com/Lorenzo-Coslado/macos-faceid/main/appcast.xml</string>
   <key>SUPublicEDKey</key>           <string>MYs0iwYg/b5lDERYBHVBBiIw8R2awqExOluwOfZlp0w=</string>
   <key>SUEnableAutomaticChecks</key> <true/>
@@ -87,13 +92,15 @@ cp "$HERE/assets/menubar-icon.png" "$RES/menubar-icon.png"
 cp -R "$HERE/packaging/dist/faceid" "$RES/faceid"                 # moteur Python autonome
 mkdir -p "$RES/helpers" "$RES/assets" "$RES/models" "$RES/pam" "$RES/scripts"
 cp "$HERE/helpers/touchid-helper" "$HERE/helpers/auth-modal" "$HERE/helpers/faceid-hud" "$RES/helpers/"
-cp "$HERE/assets/faceid-icon.png" "$HERE/assets/faceid-icon.icns" "$RES/assets/"
+cp "$HERE/assets/faceid-icon.png" "$RES/assets/"
+cp "$HERE/assets/FaceID.icns" "$RES/assets/faceid-icon.icns"
 cp "$MODELS/"*.onnx "$RES/models/"
 cp "$HERE/pam/pam_faceid.so" "$RES/pam/"
 cp "$HERE/scripts/pam-install-root.sh" "$HERE/scripts/pam-uninstall-root.sh" "$RES/scripts/"
 cp -R "$HERE"/i18n/*.lproj "$RES/"
 
 echo "══ 6/6  Signature ad-hoc (test local) ══"
+bash "$HERE/scripts/check-macos-compat.sh" "$APP"
 codesign --force --deep --sign - "$APP" 2>/dev/null
 
 SIZE=$(du -sh "$APP" | cut -f1)

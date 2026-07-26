@@ -11,7 +11,7 @@ Thanks for your interest! This is a small, fun project, contributions are welcom
 
 ## Dev setup
 
-Requirements: macOS (Apple Silicon), Xcode Command Line Tools, Python 3.12.
+Requirements: macOS 15 or later (Apple Silicon), Xcode Command Line Tools, Python 3.12 or later.
 
 ```bash
 git clone https://github.com/Lorenzo-Coslado/macos-faceid.git

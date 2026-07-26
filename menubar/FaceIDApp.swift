@@ -261,6 +261,32 @@ final class AppController: NSObject, NSApplicationDelegate {
 @main
 struct FaceIDMain {
     static func main() {
+        if CommandLine.arguments.contains("--refresh-helper") {
+            switch HelperManager.shared.refreshRegistration() {
+            case .enabled:
+                print("helper enregistré et activé")
+                exit(0)
+            case .needsApproval:
+                print("helper enregistré; approbation requise dans Réglages > Éléments d'ouverture")
+                exit(3)
+            case .failed(let message):
+                fputs("échec de l'enregistrement du helper : \(message)\n", stderr)
+                exit(1)
+            }
+        }
+        if CommandLine.arguments.contains("--probe-helper") {
+            var result: Int32?
+            HelperManager.shared.probe { ok, message in
+                print(message)
+                result = ok ? 0 : 1
+            }
+            let deadline = Date().addingTimeInterval(8)
+            while result == nil && Date() < deadline {
+                RunLoop.current.run(mode: .default, before: Date().addingTimeInterval(0.1))
+            }
+            if result == nil { fputs("helper probe timeout\n", stderr) }
+            exit(result ?? 2)
+        }
         let app = NSApplication.shared
         app.setActivationPolicy(.accessory)
         let controller = AppController()
