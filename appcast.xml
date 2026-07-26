@@ -7,7 +7,8 @@
             <pubDate>Fri, 24 Jul 2026 11:08:44 -0400</pubDate>
             <sparkle:version>2</sparkle:version>
             <sparkle:shortVersionString>1.0.1</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+            <!-- v1.0.1 was built with a macOS 26 deployment target. -->
+            <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
             <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
             <enclosure url="https://github.com/Lorenzo-Coslado/macos-faceid/releases/download/v1.0.1/Mugshot.dmg" length="104922323" type="application/octet-stream" sparkle:edSignature="rNEi9hKo2QKTbJzR3CFMChNzqldvn+0K75BD0dLHNPGHSlbJaeZof0Xlzw39BPQ6U+lISMfQLSy7l5x5c0anCA=="/>
         </item>

@@ -13,7 +13,31 @@ enum CodesignCheckError: Error {
 struct CodesignCheck {
 
     public static func codeSigningMatches(pid: pid_t) throws -> Bool {
-        return try self.codeSigningCertificatesForSelf() == self.codeSigningCertificates(forPID: pid)
+        guard let ownCode = try secStaticCodeSelf(),
+              let peerCode = try secStaticCode(forPID: pid),
+              let ownInfo = try secCodeInfo(forStaticCode: ownCode),
+              let peerInfo = try secCodeInfo(forStaticCode: peerCode) else { return false }
+
+        let ownCertificates = certificates(from: ownInfo)
+        let peerCertificates = certificates(from: peerInfo)
+
+        // Une release Developer ID doit conserver exactement la même chaîne de
+        // certificats des deux côtés. Un mélange signed/ad-hoc est toujours refusé.
+        if !ownCertificates.isEmpty || !peerCertificates.isEmpty {
+            return !ownCertificates.isEmpty && ownCertificates == peerCertificates
+        }
+
+        // Les builds locaux ad-hoc n'ont aucun certificat à comparer. On limite
+        // alors le client au binaire principal attendu, dans le même bundle .app
+        // que ce helper, après validation cryptographique des deux Mach-O ci-dessus.
+        guard identifier(from: peerInfo) == "com.lorenzo.Mugshot",
+              let ownExecutable = executableURL(from: ownInfo),
+              let peerExecutable = executableURL(from: peerInfo),
+              ownExecutable.lastPathComponent == "MugshotHelper",
+              peerExecutable.lastPathComponent == "Mugshot",
+              let ownApp = containingAppURL(for: ownExecutable),
+              let peerApp = containingAppURL(for: peerExecutable) else { return false }
+        return ownApp == peerApp
     }
 
     public static func codeSigningCertificatesForSelf() throws -> [SecCertificate] {
@@ -75,9 +99,31 @@ struct CodesignCheck {
     }
 
     private static func codeSigningCertificates(forStaticCode secStaticCode: SecStaticCode) throws -> [SecCertificate] {
-        guard
-            let secCodeInfo = try secCodeInfo(forStaticCode: secStaticCode),
-            let secCertificates = secCodeInfo[kSecCodeInfoCertificates as String] as? [SecCertificate] else { return [] }
-        return secCertificates
+        guard let secCodeInfo = try secCodeInfo(forStaticCode: secStaticCode) else { return [] }
+        return certificates(from: secCodeInfo)
+    }
+
+    private static func certificates(from info: [String: Any]) -> [SecCertificate] {
+        info[kSecCodeInfoCertificates as String] as? [SecCertificate] ?? []
+    }
+
+    private static func identifier(from info: [String: Any]) -> String? {
+        info[kSecCodeInfoIdentifier as String] as? String
+    }
+
+    private static func executableURL(from info: [String: Any]) -> URL? {
+        guard let url = info[kSecCodeInfoMainExecutable as String] as? URL else { return nil }
+        return url.standardizedFileURL.resolvingSymlinksInPath()
+    }
+
+    private static func containingAppURL(for executable: URL) -> URL? {
+        var candidate = executable.deletingLastPathComponent()
+        while candidate.path != "/" {
+            if candidate.pathExtension == "app" {
+                return candidate.standardizedFileURL.resolvingSymlinksInPath()
+            }
+            candidate.deleteLastPathComponent()
+        }
+        return nil
     }
 }

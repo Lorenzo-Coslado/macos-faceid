@@ -3,6 +3,7 @@
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+source "$HERE/scripts/macos-target.sh"
 APP="$HERE/build/Mugshot.app"
 BUNDLE_ID="com.lorenzo.Mugshot"
 DEST="/Applications/Mugshot.app"
@@ -28,7 +29,10 @@ for sz in 16 32 128 256 512; do
   sips -z $((sz*2)) $((sz*2)) "$SRC" --out "$ICONSET/icon_${sz}x${sz}@2x.png" >/dev/null
 done
 cp "$SRC" "$ICONSET/icon_512x512@2x.png"
-iconutil -c icns "$ICONSET" -o "$HERE/assets/Mugshot.icns"
+if ! iconutil -c icns "$ICONSET" -o "$HERE/assets/Mugshot.icns"; then
+  [ -f "$HERE/assets/Mugshot.icns" ] || exit 1
+  echo "Avertissement: iconutil a échoué; réutilisation de assets/Mugshot.icns" >&2
+fi
 
 echo "== Assemblage du bundle =="
 rm -rf "$APP"
@@ -48,7 +52,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
   <key>CFBundleShortVersionString</key> <string>1.0</string>
   <key>CFBundleVersion</key>         <string>1</string>
   <key>LSUIElement</key>             <true/>
-  <key>LSMinimumSystemVersion</key>  <string>13.0</string>
+  <key>LSMinimumSystemVersion</key>  <string>${MACOSX_DEPLOYMENT_TARGET}</string>
   <key>SUFeedURL</key>               <string>https://raw.githubusercontent.com/Lorenzo-Coslado/macos-faceid/main/appcast.xml</string>
   <key>SUPublicEDKey</key>           <string>MYs0iwYg/b5lDERYBHVBBiIw8R2awqExOluwOfZlp0w=</string>
   <key>SUEnableAutomaticChecks</key> <true/>
@@ -86,6 +90,7 @@ cp -R "$HERE"/i18n/*.lproj "$APP/Contents/Resources/"
 
 echo "== Compilation de l'app =="
 swiftc -O -swift-version 5 \
+  -target "$MUGSHOT_SWIFT_TARGET" \
   -o "$APP/Contents/MacOS/Mugshot" \
   "$HERE/menubar/Branding.swift" \
   "$HERE/menubar/Onboarding.swift" \
@@ -93,12 +98,13 @@ swiftc -O -swift-version 5 \
   "$HERE/menubar/HelperManager.swift" \
   "$HERE/helpertool/HelperProtocol.swift" \
   "$HERE/menubar/FaceIDApp.swift" \
-  -framework AppKit -framework SwiftUI -framework AVFoundation -framework ServiceManagement \
+  -framework AppKit -framework SwiftUI -framework AVFoundation -framework ServiceManagement -framework Security \
   -F "$HERE/vendor/sparkle" -framework Sparkle \
   -Xlinker -rpath -Xlinker @executable_path/../Frameworks
 
 echo "== Compilation du daemon privilégié (MugshotHelper) =="
 swiftc -O -swift-version 5 \
+  -target "$MUGSHOT_SWIFT_TARGET" \
   -o "$APP/Contents/MacOS/MugshotHelper" \
   "$HERE/helpertool/main.swift" \
   "$HERE/helpertool/HelperProtocol.swift" \
@@ -109,6 +115,7 @@ echo "== Scripts exécutables =="
 chmod +x "$HERE"/scripts/*.sh 2>/dev/null || true
 
 echo "== Signature ad-hoc =="
+bash "$HERE/scripts/check-macos-compat.sh" "$APP"
 codesign --force --deep --sign - "$APP"
 
 echo "== Installation dans /Applications =="
