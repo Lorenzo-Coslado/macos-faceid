@@ -111,3 +111,20 @@ jobs:
             dist/Mugshot.app/Contents/Info.plist)
           echo "Info.plist advertises macOS $PLIST_MIN"
           bash scripts/check-macos-compat.sh dist/Mugshot.app
+
+      - name: PAM module loads
+        run: bash scripts/check-pam-module.sh dist/Mugshot.app/Contents/Resources/pam/pam_faceid.so
+
+      - name: sudo still works with the module installed
+        run: |
+          # Install exactly like the privileged helper does, then prove sudo loads the
+          # module without breaking authentication. The rule is `sufficient`, so a failed
+          # face check must fall through to the next method rather than lock sudo up.
+          sudo mkdir -p /usr/local/lib/pam
+          sudo cp dist/Mugshot.app/Contents/Resources/pam/pam_faceid.so /usr/local/lib/pam/
+          printf 'auth       sufficient     /usr/local/lib/pam/pam_faceid.so\n' \
+            | sudo tee /etc/pam.d/sudo_local >/dev/null
+          sudo -k
+          timeout 60 sudo -n true
+          echo "sudo authenticated with the module loaded (fell through as expected)"
+          sudo rm -f /etc/pam.d/sudo_local /usr/local/lib/pam/pam_faceid.so
