@@ -45,7 +45,11 @@ static os_log_t faceid_log(void) {
 }
 /* Outcomes that end in a password prompt are logged as errors so they survive without
  * --info: those are the ones someone is looking for when nothing happens. */
-#define FACEID_INFO(fmt, ...)  os_log_info(faceid_log(), fmt, ##__VA_ARGS__)
+/* Default level, not os_log_info: info-level messages live in a volatile memory buffer
+ * and are gone by the time anyone runs `log show`. These few lines per sudo invocation
+ * are the only trail explaining why authentication fell back to the password, so they
+ * have to survive. */
+#define FACEID_INFO(fmt, ...)  os_log(faceid_log(), fmt, ##__VA_ARGS__)
 #define FACEID_FAIL(fmt, ...)  os_log_error(faceid_log(), fmt, ##__VA_ARGS__)
 /* sudo : large (choix dans le modal + auth). écran verrouillé : court, pour
  * basculer vite sur le mot de passe si le daemon traîne. */

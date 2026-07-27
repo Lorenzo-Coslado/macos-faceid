@@ -58,12 +58,19 @@ echo "== 5. What did the module report? =="
 # Note: "Library Validation failed ... pam_faceid.so" in the system log is expected and
 # harmless. sudo holds the com.apple.private.security.clear-library-validation
 # entitlement and retries the load, so the module still ends up running.
-FOUND=$(/usr/bin/log show --last 10m --info --predicate 'subsystem == "com.lorenzo.Mugshot"' \
-  --style compact 2>/dev/null | tail -6)
-if [ -n "$FOUND" ]; then
-  echo "$FOUND"
+#
+# The module's os_log output lives in a volatile buffer that `log show` does not read
+# back reliably, so the daemon's own file is the record that survives. To watch the
+# module live instead, run this and trigger sudo from another terminal:
+#   log stream --predicate 'subsystem == "com.lorenzo.Mugshot"'
+DLOG="$SUPPORT/logs/daemon.log"
+if [ -f "$DLOG" ]; then
+  tail -3 "$DLOG" | sed 's/^/        /'
+  grep -q "verify -> OK" "$DLOG" 2>/dev/null \
+    && ok "the daemon has authenticated at least once" \
+    || info "no successful verify recorded yet; run 'sudo -k; sudo true' and re-run this"
 else
-  info "(nothing in the last 10 minutes; run 'sudo -k; sudo true', then re-run this)"
+  info "no daemon log at $DLOG yet"
 fi
 
 echo
