@@ -53,17 +53,25 @@ sudo env HOME="$HOME" bash "$APP/Contents/Resources/scripts/pam-install-root.sh"
 echo "== /etc/pam.d/sudo =="
 cat /etc/pam.d/sudo
 
-echo "== Asking sudo to authenticate =="
-sudo -k
-# -n so a password prompt fails immediately instead of hanging the job.
-sudo -n true || true
+echo "== Running the sudo PAM stack =="
+# Not sudo(8) itself: CI runners grant NOPASSWD, so sudo skips authentication and never
+# reads the PAM stack. This drives the same service name directly.
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+clang -Wall -O2 -o /tmp/pam_chain_test "$HERE/pam/pam_chain_test.c" -lpam
+/tmp/pam_chain_test "$(id -un)" && AUTH_OK=1 || AUTH_OK=0
 
 wait "$FAKE_DAEMON" 2>/dev/null || true
-if [ -f "$WITNESS" ]; then
-  echo "PASS: sudo consulted pam_faceid"
-  rm -f "$WITNESS"
-else
-  echo "FAIL: sudo never consulted pam_faceid." >&2
-  echo "      The module is installed but not in sudo's chain." >&2
+if [ ! -f "$WITNESS" ]; then
+  echo "FAIL: the sudo PAM stack never consulted pam_faceid." >&2
+  echo "      The module is installed but not in sudo's chain (missing include?)." >&2
   exit 1
 fi
+rm -f "$WITNESS"
+echo "PASS: the sudo PAM stack consulted pam_faceid"
+
+if [ "$AUTH_OK" != "1" ]; then
+  echo "FAIL: the module was consulted but authentication did not succeed," >&2
+  echo "      even though the daemon answered OK." >&2
+  exit 1
+fi
+echo "PASS: a positive answer from the daemon authenticates"
