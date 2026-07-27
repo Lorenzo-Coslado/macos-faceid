@@ -54,13 +54,17 @@ echo "== 4. Is the daemon running and listening? =="
 pgrep -f "faceid daemon" >/dev/null && ok "daemon running" || bad "daemon not running (launch Mugshot)"
 [ -S "$SUPPORT/faceid.sock" ] && ok "socket present" || bad "no socket at $SUPPORT/faceid.sock"
 
-echo "== 5. Did the helper report anything? =="
+echo "== 5. What did the module report? =="
 # Note: "Library Validation failed ... pam_faceid.so" in the system log is expected and
 # harmless. sudo holds the com.apple.private.security.clear-library-validation
 # entitlement and retries the load, so the module still ends up running.
-log show --last 10m --style compact 2>/dev/null \
-  | grep -iE "MugshotHelper|faceid daemon" | tail -5 \
-  || info "(nothing recent)"
+FOUND=$(/usr/bin/log show --last 10m --info --predicate 'subsystem == "com.lorenzo.Mugshot"' \
+  --style compact 2>/dev/null | tail -6)
+if [ -n "$FOUND" ]; then
+  echo "$FOUND"
+else
+  info "(nothing in the last 10 minutes; run 'sudo -k; sudo true', then re-run this)"
+fi
 
 echo
 echo "Done. Paste this output back if anything says FAIL."
