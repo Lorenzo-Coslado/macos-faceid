@@ -6,6 +6,29 @@ All notable changes to this project are documented here. The format is based on
 
 ## [Unreleased]
 
+## [1.0.3] - 2026-07-27
+
+### Fixed
+
+- Face ID now actually triggers for `sudo`. On systems whose `/etc/pam.d/sudo` lacks the
+  `auth include sudo_local` line, everything installed correctly and was silently ignored:
+  `sudo` never read our configuration and simply asked for the password. Apple has shipped
+  that include since macOS 14, but it is missing on some machines (reported on 15.6.1).
+  Enabling Face ID for sudo now adds it when absent, after backing the file up and
+  validating the result.
+- The PAM module logs to `LOG_AUTH` at every exit path. The rule is `sufficient`, so any
+  failure degrades to the password prompt with no explanation; there is now a trail.
+  Inspect with `log show --last 2m --predicate 'eventMessage contains "pam_faceid"'`.
+
+### Added
+
+- `scripts/diagnose.sh` reports which link of the chain is broken: the sudo wiring, the
+  module, the enrolment, or the daemon.
+- The disk image now contains the usual `Applications` shortcut, and the app warns when
+  launched from the image or from outside Applications, where the privileged helper
+  cannot survive.
+- CI assembles the bundle and drives the real `sudo` PAM stack on macOS 14, 15 and 26.
+
 ## [1.0.2] - 2026-07-27
 
 ### Fixed
