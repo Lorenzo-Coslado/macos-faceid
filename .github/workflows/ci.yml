@@ -124,6 +124,9 @@ jobs:
       - name: sudo actually consults the module
         run: bash scripts/check-pam-chain.sh dist/Mugshot.app
 
+      - name: Reported failure is reproduced and repaired
+        run: bash scripts/check-pam-repair.sh dist/Mugshot.app
+
       - name: Clean up
         if: always()
         run: sudo rm -f /etc/pam.d/sudo_local /usr/local/lib/pam/pam_faceid.so
