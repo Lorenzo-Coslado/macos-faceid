@@ -125,6 +125,8 @@ jobs:
           printf 'auth       sufficient     /usr/local/lib/pam/pam_faceid.so\n' \
             | sudo tee /etc/pam.d/sudo_local >/dev/null
           sudo -k
-          timeout 60 sudo -n true
+          # macOS has no timeout(1); perl's alarm is always available and fails the job
+          # if the module ever wedges sudo instead of falling through.
+          perl -e 'alarm 60; exec @ARGV or die "exec: $!"' sudo -n true
           echo "sudo authenticated with the module loaded (fell through as expected)"
           sudo rm -f /etc/pam.d/sudo_local /usr/local/lib/pam/pam_faceid.so
