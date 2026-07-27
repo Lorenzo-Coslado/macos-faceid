@@ -4,12 +4,12 @@
         <title>Mugshot</title>
         <item>
             <title>1.0.3</title>
-            <pubDate>Mon, 27 Jul 2026 15:00:57 -0400</pubDate>
+            <pubDate>Mon, 27 Jul 2026 15:26:21 -0400</pubDate>
             <sparkle:version>4</sparkle:version>
             <sparkle:shortVersionString>1.0.3</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
             <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <enclosure url="https://github.com/Lorenzo-Coslado/macos-faceid/releases/download/v1.0.3/Mugshot.dmg" length="98885445" type="application/octet-stream" sparkle:edSignature="DuS5cumKrrxmZbt/b3r38pFKHbp08KyRat5bwRmOH84gOS3KuCr5mWNPmAJfWIoCMUnucOaw++ZjMOOKVJfeBA=="/>
+            <enclosure url="https://github.com/Lorenzo-Coslado/macos-faceid/releases/download/v1.0.3/Mugshot.dmg" length="98908262" type="application/octet-stream" sparkle:edSignature="B0LTWitgljpUA9Mh+yiEBm2DKavxQ9njhI0orWcsdCfDzPLRX1laj2K6UD+DEsvwuR2Rtch8C4UI3FitI7ssCg=="/>
         </item>
     </channel>
 </rss>
