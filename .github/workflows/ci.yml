@@ -70,3 +70,44 @@ jobs:
             helpertool/main.swift helpertool/HelperProtocol.swift \
             helpertool/CodesignCheck.swift \
             -framework Foundation -framework Security
+
+  bundle:
+    # Assemble the shippable bundle on the oldest supported macOS and actually run the
+    # frozen engine there. This is what catches a build that silently inherits a newer
+    # deployment target: 1.0.1 shipped requiring macOS 26 while advertising 13.0.
+    name: Bundle runs on the oldest supported macOS
+    runs-on: macos-14
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Python dependencies
+        run: |
+          python -m venv .venv
+          ./.venv/bin/pip install --upgrade pip wheel
+          ./.venv/bin/pip install -r requirements.txt
+
+      - name: Download models
+        run: bash scripts/download-models.sh
+
+      - name: Build the standalone bundle
+        run: bash scripts/build-standalone.sh
+
+      - name: Run the frozen engine from the bundle
+        run: |
+          RES="dist/Mugshot.app/Contents/Resources"
+          FACEID_MODELS_DIR="$PWD/$RES/models" \
+          FACEID_ASSETS_DIR="$PWD/$RES/assets" \
+          FACEID_HELPERS_DIR="$PWD/$RES/helpers" \
+          "$RES/faceid/faceid" selftest
+
+      - name: Check the advertised minimum matches the binaries
+        run: |
+          PLIST_MIN=$(/usr/libexec/PlistBuddy -c "Print :LSMinimumSystemVersion" \
+            dist/Mugshot.app/Contents/Info.plist)
+          echo "Info.plist advertises macOS $PLIST_MIN"
+          bash scripts/check-macos-compat.sh dist/Mugshot.app
