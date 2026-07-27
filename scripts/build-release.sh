@@ -73,13 +73,8 @@ echo "══ 4  DMG ══"
 # Running the app straight from the mounted image half-works and then breaks: the
 # privileged helper is registered from a path that disappears on eject, and sudo quietly
 # falls back to the password.
-rm -f "$DMG"
-STAGE="$HERE/dist/dmg-stage"
-rm -rf "$STAGE"; mkdir -p "$STAGE"
-cp -R "$APP" "$STAGE/"
-ln -s /Applications "$STAGE/Applications"
-hdiutil create -volname "Mugshot" -srcfolder "$STAGE" -ov -format UDZO "$DMG" >/dev/null
-rm -rf "$STAGE"
+"$HERE/.venv/bin/python" "$HERE/scripts/make_dmg_background.py" >/dev/null
+bash "$HERE/scripts/make-dmg.sh" "$APP" "$DMG"
 
 echo "══ 5  Notarisation (upload + attente Apple) ══"
 xcrun notarytool submit "$DMG" --keychain-profile "$NOTARY_PROFILE" --wait
