@@ -11,8 +11,8 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  MACOSX_DEPLOYMENT_TARGET: "15.0"
-  MUGSHOT_SWIFT_TARGET: arm64-apple-macosx15.0
+  MACOSX_DEPLOYMENT_TARGET: "14.0"
+  MUGSHOT_SWIFT_TARGET: arm64-apple-macosx14.0
 
 jobs:
   build:

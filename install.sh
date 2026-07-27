@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Installation complète de FaceID en une commande.
-# Prérequis : macOS 15+ (Apple Silicon), Xcode Command Line Tools, Python 3.12+, webcam.
+# Prérequis : macOS 14+ (Apple Silicon), Xcode Command Line Tools, Python 3.12+, webcam.
 set -euo pipefail
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

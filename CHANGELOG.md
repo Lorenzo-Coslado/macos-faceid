@@ -8,7 +8,7 @@ All notable changes to this project are documented here. The format is based on
 
 ### Changed
 
-- Set macOS 15 as the supported baseline across native builds, packaging, CI, and documentation.
+- Set macOS 14 as the supported baseline across native builds, packaging, CI, and documentation.
 - Reject app bundles containing Mach-O binaries that require a newer macOS release.
 
 ## [1.0.0] - 2026-07-23

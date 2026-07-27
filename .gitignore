@@ -55,3 +55,8 @@ assets/demo_frames/
 
 # Concepts de logo (exploration)
 assets/logos/
+
+# python.org CPython framework (provisioned by scripts/setup-python.sh)
+.python/
+.venv.homebrew-backup/
+.python-pkg/

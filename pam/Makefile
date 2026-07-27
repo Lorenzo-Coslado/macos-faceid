@@ -1,6 +1,6 @@
 SDK   := $(shell xcrun --show-sdk-path)
 CC    := clang
-MACOSX_DEPLOYMENT_TARGET ?= 15.0
+MACOSX_DEPLOYMENT_TARGET ?= 14.0
 TARGET  := arm64-apple-macosx$(MACOSX_DEPLOYMENT_TARGET)
 CFLAGS  := -Wall -Wextra -O2 -isysroot $(SDK) -target $(TARGET)
 LDFLAGS := -bundle -lpam

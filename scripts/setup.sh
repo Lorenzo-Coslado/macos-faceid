@@ -6,8 +6,21 @@ set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$HERE"
 
-PY="${FACEID_PYTHON:-python3.12}"
-if ! command -v "$PY" >/dev/null 2>&1; then
+# Prefer the python.org framework. Homebrew builds Python against the running OS, so a
+# release frozen with it refuses to launch on anything older (see scripts/setup-python.sh).
+ORG_PY="/Library/Frameworks/Python.framework/Versions/3.12/bin/python3.12"
+PY="${FACEID_PYTHON:-}"
+if [ -z "$PY" ]; then
+  if [ -x "$ORG_PY" ]; then
+    PY="$ORG_PY"
+  else
+    PY="python3.12"
+    echo "Note: python.org framework not found; using $PY." >&2
+    echo "      Fine for development, but releases built this way only run on this macOS" >&2
+    echo "      version or newer. Run scripts/setup-python.sh before building a release." >&2
+  fi
+fi
+if ! command -v "$PY" >/dev/null 2>&1 && [ ! -x "$PY" ]; then
   echo "Python introuvable : $PY (surcharge via FACEID_PYTHON=...)" >&2
   exit 1
 fi

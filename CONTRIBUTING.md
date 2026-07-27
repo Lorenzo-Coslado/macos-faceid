@@ -11,13 +11,27 @@ Thanks for your interest! This is a small, fun project, contributions are welcom
 
 ## Dev setup
 
-Requirements: macOS 15 or later (Apple Silicon), Xcode Command Line Tools, Python 3.12 or later.
+Requirements: macOS 14 or later (Apple Silicon), Xcode Command Line Tools, Python 3.12 or later.
 
 ```bash
 git clone https://github.com/Lorenzo-Coslado/macos-faceid.git
 cd macos-faceid
 ./install.sh          # venv, deps, models, native helpers, builds the app (dev mode)
 ```
+
+### Building a release
+
+Releases must be frozen with the python.org CPython framework, not Homebrew's. Homebrew
+builds Python with the deployment target set to the machine's own macOS version, so every
+binary it collects inherits that floor and the app refuses to launch on older systems.
+PyInstaller's guidance is to use python.org builds, which target macOS 11.
+
+```bash
+bash scripts/setup-python.sh   # downloads the installer and rebuilds .venv from it
+```
+
+`scripts/check-macos-compat.sh` runs at the end of every build and fails if any bundled
+Mach-O requires a newer macOS than the baseline in `scripts/macos-target.sh`.
 
 Useful commands:
 
