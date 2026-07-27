@@ -6,10 +6,31 @@ All notable changes to this project are documented here. The format is based on
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-07-27
+
+### Fixed
+
+- The app now launches on macOS 14 and 15. Releases 1.0 and 1.0.1 were frozen with a
+  Homebrew Python, which builds against the host OS, so every bundled binary required
+  macOS 26 while the app advertised 13.0. Releases are now built with the python.org
+  CPython framework, as PyInstaller recommends. If you are on macOS 14 or 15, download
+  1.0.2 manually: the older build cannot start, so it cannot update itself.
+
 ### Changed
 
 - Set macOS 14 as the supported baseline across native builds, packaging, CI, and documentation.
 - Reject app bundles containing Mach-O binaries that require a newer macOS release.
+
+### Security
+
+- Reject XPC clients whose signature does not match the helper. Two ad-hoc binaries
+  previously compared equal (both report an empty certificate chain), so any ad-hoc
+  process could drive the privileged helper in a development build.
+- Stop silently ignoring a failed `setCodeSigningRequirement` on the XPC connection.
+  Developer ID builds require the app's own team; local builds pin the helper's cdhash.
+
+Thanks to [@reycn](https://github.com/reycn) for reporting and fixing the signature
+checks and for adding the deployment-target audit ([#5](https://github.com/Lorenzo-Coslado/macos-faceid/pull/5)).
 
 ## [1.0.0] - 2026-07-23
 
