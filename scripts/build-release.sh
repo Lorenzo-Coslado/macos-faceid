@@ -43,6 +43,7 @@ for b in "$APP/Contents/Resources/faceid/faceid" \
          "$APP/Contents/Resources/helpers/touchid-helper" \
          "$APP/Contents/Resources/helpers/auth-modal" \
          "$APP/Contents/Resources/helpers/faceid-hud" \
+         "$APP/Contents/Resources/helpers/camera-list" \
          "$APP/Contents/Resources/pam/pam_faceid.so"; do
   codesign --force --timestamp --options runtime --entitlements "$ENT" --sign "$DEV_ID" "$b"
 done

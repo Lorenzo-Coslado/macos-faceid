@@ -1,6 +1,7 @@
 // Branding.swift — couleurs, logo, chemins, réglages persistants, exécution.
 import SwiftUI
 import AppKit
+import AVFoundation
 
 /// Texte localisé (Localizable.strings, repli anglais).
 func L(_ key: String) -> String {
@@ -54,6 +55,28 @@ enum Paths {
     }
 }
 
+/// Caméras disponibles, dans l'ordre où le moteur les indexe.
+enum Cameras {
+    struct Device: Identifiable {
+        let id: Int          // index passé au moteur via FACEID_CAMERA
+        let name: String
+        let isContinuity: Bool
+    }
+
+    /// Même énumération que helpers/camera-list, pour que les index concordent.
+    static func list() -> [Device] {
+        var types: [AVCaptureDevice.DeviceType] = [.builtInWideAngleCamera, .external]
+        if #available(macOS 14.0, *) { types.append(.continuityCamera) }
+        let session = AVCaptureDevice.DiscoverySession(
+            deviceTypes: types, mediaType: .video, position: .unspecified)
+        return session.devices.enumerated().map { index, device in
+            var continuity = device.modelID.contains("iPhone") || device.modelID.contains("iPad")
+            if #available(macOS 14.0, *), device.deviceType == .continuityCamera { continuity = true }
+            return Device(id: index, name: device.localizedName, isContinuity: continuity)
+        }
+    }
+}
+
 enum Brand {
     static let green = Color(red: 0.525, green: 0.910, blue: 0.541)
     static let greenNS = NSColor(red: 0.525, green: 0.910, blue: 0.541, alpha: 1)
@@ -74,17 +97,23 @@ final class Settings: ObservableObject {
     @Published var threshold: Double { didSet { d.set(threshold, forKey: "faceid.threshold") } }
     @Published var modal: Bool { didSet { d.set(modal, forKey: "faceid.modal") } }
     @Published var hud: Bool { didSet { d.set(hud, forKey: "faceid.hud") } }
+    /// Index de la caméra, ou -1 pour laisser le moteur choisir (il évite alors
+    /// l'iPhone appairé, que macOS expose comme caméra et place parfois en premier).
+    @Published var cameraIndex: Int { didSet { d.set(cameraIndex, forKey: "faceid.camera") } }
 
     private init() {
         threshold = d.object(forKey: "faceid.threshold") as? Double ?? 0.36
         modal = d.object(forKey: "faceid.modal") as? Bool ?? true
         hud = d.object(forKey: "faceid.hud") as? Bool ?? true
+        cameraIndex = d.object(forKey: "faceid.camera") as? Int ?? -1
     }
 
     var env: [String: String] {
-        ["FACEID_THRESHOLD": String(format: "%.2f", threshold),
-         "FACEID_MODAL": modal ? "1" : "0",
-         "FACEID_HUD": hud ? "1" : "0"]
+        var e = ["FACEID_THRESHOLD": String(format: "%.2f", threshold),
+                 "FACEID_MODAL": modal ? "1" : "0",
+                 "FACEID_HUD": hud ? "1" : "0"]
+        if cameraIndex >= 0 { e["FACEID_CAMERA"] = String(cameraIndex) }
+        return e
     }
 }
 

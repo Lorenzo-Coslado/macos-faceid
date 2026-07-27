@@ -20,8 +20,14 @@ All notable changes to this project are documented here. The format is based on
   failure degrades to the password prompt with no explanation; there is now a trail.
   Inspect with `log show --last 2m --predicate 'eventMessage contains "pam_faceid"'`.
 
+- Unlocking no longer wakes a paired iPhone. macOS exposes it as a Continuity Camera and
+  sometimes lists it first, so `sudo` would light up the phone instead of using the
+  webcam. The built-in camera is now preferred, and a picker in Settings overrides it.
+
 ### Added
 
+- Camera selection in Settings, shown when more than one camera is available. iPhone
+  entries are labelled as such.
 - `scripts/diagnose.sh` reports which link of the chain is broken: the sudo wiring, the
   module, the enrolment, or the daemon.
 - The disk image now contains the usual `Applications` shortcut, and the app warns when

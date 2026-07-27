@@ -1,5 +1,6 @@
 """Chemins et paramètres partagés par tous les composants."""
 import os
+import subprocess
 from pathlib import Path
 
 # Chemins. En bundle autonome (Mugshot.app), l'app pose des variables d'env vers
@@ -69,4 +70,38 @@ LOCK_TIMEOUT_S = float(os.environ.get("FACEID_LOCK_TIMEOUT", "5.0"))
 # Taille minimale (px) du visage détecté pour être exploitable.
 MIN_FACE_SIZE = int(os.environ.get("FACEID_MIN_FACE", "80"))
 
-CAMERA_INDEX = int(os.environ.get("FACEID_CAMERA", "0"))
+def _resolve_camera_index():
+    """Index de la caméra à ouvrir.
+
+    macOS expose l'iPhone appairé comme caméra (Continuity Camera) et le place parfois
+    en premier : déverrouiller sudo réveillerait le téléphone au lieu d'utiliser la
+    webcam. On préfère donc explicitement la caméra intégrée. `FACEID_CAMERA` force un
+    index précis et court-circuite cette détection.
+    """
+    forced = os.environ.get("FACEID_CAMERA")
+    if forced is not None:
+        return int(forced)
+
+    lister = HELPERS_DIR / "camera-list"
+    if not lister.exists():
+        return 0
+    try:
+        out = subprocess.run([str(lister)], capture_output=True, text=True, timeout=5).stdout
+    except (OSError, subprocess.SubprocessError):
+        return 0
+
+    cameras = []
+    for line in out.splitlines():
+        parts = line.split("\t")
+        if len(parts) >= 2 and parts[0].isdigit():
+            cameras.append((int(parts[0]), parts[1]))
+    for index, kind in cameras:
+        if kind == "builtin":
+            return index
+    for index, kind in cameras:      # pas de caméra intégrée : un moniteur externe fera l'affaire
+        if kind != "continuity":
+            return index
+    return cameras[0][0] if cameras else 0
+
+
+CAMERA_INDEX = _resolve_camera_index()
