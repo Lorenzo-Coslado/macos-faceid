@@ -72,6 +72,7 @@ final class AppController: NSObject, NSApplicationDelegate {
     var settingsWC: NSWindowController?
 
     func applicationDidFinishLaunching(_ n: Notification) {
+        warnIfRunningFromAnUnstableLocation()
         daemon.onExit = { [weak self] in self?.refresh() }
         if let b = statusItem.button {
             if let p = Bundle.main.path(forResource: "menubar-icon", ofType: "png"),
@@ -114,6 +115,28 @@ final class AppController: NSObject, NSApplicationDelegate {
 
     // ---------- menu ----------
     func refresh() { buildMenu(running: daemon.isRunning) }
+
+    /// Running from the mounted disk image or the Downloads folder half-works: enrolment
+    /// and settings behave, but the privileged helper gets registered from a path that
+    /// moves or disappears, and sudo then quietly falls back to the password. Say so
+    /// before the user spends time setting things up.
+    private func warnIfRunningFromAnUnstableLocation() {
+        let path = Bundle.main.bundleURL.resolvingSymlinksInPath().path
+        let inApplications = path.hasPrefix("/Applications/")
+            || path.hasPrefix(NSHomeDirectory() + "/Applications/")
+        guard !inApplications else { return }
+
+        let onReadOnlyImage = path.hasPrefix("/Volumes/")
+        let a = NSAlert()
+        a.alertStyle = .warning
+        a.messageText = L("move.title")
+        a.informativeText = onReadOnlyImage ? L("move.body.dmg") : L("move.body.other")
+        a.addButton(withTitle: L("move.reveal"))
+        a.addButton(withTitle: L("move.ignore"))
+        if a.runModal() == .alertFirstButtonReturn {
+            NSWorkspace.shared.activateFileViewerSelecting([Bundle.main.bundleURL])
+        }
+    }
 
     func buildMenu(running: Bool) {
         let m = NSMenu()

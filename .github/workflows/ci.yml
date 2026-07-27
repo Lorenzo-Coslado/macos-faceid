@@ -75,9 +75,15 @@ jobs:
     # Assemble the shippable bundle on the oldest supported macOS and actually run the
     # frozen engine there. This is what catches a build that silently inherits a newer
     # deployment target: 1.0.1 shipped requiring macOS 26 while advertising 13.0.
-    name: Bundle runs on the oldest supported macOS
-    runs-on: macos-14
+    name: Bundle on macOS ${{ matrix.macos }}
+    runs-on: macos-${{ matrix.macos }}
     timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        # Every supported major release. 1.0.2 worked on 26 and silently fell back to
+        # the password on 15, because /etc/pam.d/sudo there has no sudo_local include.
+        macos: [14, 15, 26]
     steps:
       - uses: actions/checkout@v7
 
@@ -115,18 +121,9 @@ jobs:
       - name: PAM module loads
         run: bash scripts/check-pam-module.sh dist/Mugshot.app/Contents/Resources/pam/pam_faceid.so
 
-      - name: sudo still works with the module installed
-        run: |
-          # Install exactly like the privileged helper does, then prove sudo loads the
-          # module without breaking authentication. The rule is `sufficient`, so a failed
-          # face check must fall through to the next method rather than lock sudo up.
-          sudo mkdir -p /usr/local/lib/pam
-          sudo cp dist/Mugshot.app/Contents/Resources/pam/pam_faceid.so /usr/local/lib/pam/
-          printf 'auth       sufficient     /usr/local/lib/pam/pam_faceid.so\n' \
-            | sudo tee /etc/pam.d/sudo_local >/dev/null
-          sudo -k
-          # macOS has no timeout(1); perl's alarm is always available and fails the job
-          # if the module ever wedges sudo instead of falling through.
-          perl -e 'alarm 60; exec @ARGV or die "exec: $!"' sudo -n true
-          echo "sudo authenticated with the module loaded (fell through as expected)"
-          sudo rm -f /etc/pam.d/sudo_local /usr/local/lib/pam/pam_faceid.so
+      - name: sudo actually consults the module
+        run: bash scripts/check-pam-chain.sh dist/Mugshot.app
+
+      - name: Clean up
+        if: always()
+        run: sudo rm -f /etc/pam.d/sudo_local /usr/local/lib/pam/pam_faceid.so

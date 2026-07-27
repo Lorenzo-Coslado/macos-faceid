@@ -18,11 +18,20 @@
 #include <string.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <syslog.h>
+#include <errno.h>
 
 #include <security/pam_appl.h>
 #include <security/pam_modules.h>
 
 #define SOCK_SUFFIX "/Library/Application Support/faceid/faceid.sock"
+
+/* Without this the module is invisible: the PAM rule is `sufficient`, so every failure
+ * silently degrades to the password prompt and the user cannot tell whether the module
+ * ran at all. Inspect with:  log show --last 2m --predicate 'sender == "sudo"'
+ * or:  syslog -k Sender pam_faceid                                                  */
+#define FACEID_LOG(fmt, ...) \
+    syslog(LOG_AUTH | LOG_NOTICE, "pam_faceid: " fmt, ##__VA_ARGS__)
 /* sudo : large (choix dans le modal + auth). écran verrouillé : court, pour
  * basculer vite sur le mot de passe si le daemon traîne. */
 #define RECV_TIMEOUT_SLOW 120
@@ -50,6 +59,8 @@ static int ask_daemon(const char *home, int fast) {
     setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
 
     if (connect(fd, (struct sockaddr *)&addr, sizeof(addr)) != 0) {
+        FACEID_LOG("cannot reach the daemon at %s (%s); falling back to password",
+                   path, strerror(errno));
         close(fd);
         return PAM_AUTHINFO_UNAVAIL;
     }
@@ -66,12 +77,20 @@ static int ask_daemon(const char *home, int fast) {
     ssize_t n = read(fd, buf, sizeof(buf) - 1);
     close(fd);
 
-    if (n <= 0)
+    if (n <= 0) {
+        FACEID_LOG("daemon did not answer within %ds; falling back to password",
+                   fast ? RECV_TIMEOUT_FAST : RECV_TIMEOUT_SLOW);
         return PAM_AUTHINFO_UNAVAIL;
-    if (strncmp(buf, "OK", 2) == 0)
+    }
+    if (strncmp(buf, "OK", 2) == 0) {
+        FACEID_LOG("face recognised, authenticating");
         return PAM_SUCCESS;
-    if (strncmp(buf, "FAIL", 4) == 0)
+    }
+    if (strncmp(buf, "FAIL", 4) == 0) {
+        FACEID_LOG("face not recognised; falling back to password");
         return PAM_AUTH_ERR;
+    }
+    FACEID_LOG("unexpected answer from daemon; falling back to password");
     return PAM_AUTHINFO_UNAVAIL;
 }
 
@@ -86,13 +105,20 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags,
         if (strcmp(argv[i], "lock") == 0) fast = 1;
 
     const char *user = NULL;
-    if (pam_get_user(pamh, &user, NULL) != PAM_SUCCESS || user == NULL)
+    if (pam_get_user(pamh, &user, NULL) != PAM_SUCCESS || user == NULL) {
+        FACEID_LOG("PAM did not provide a user; falling back to password");
         return PAM_AUTHINFO_UNAVAIL;
+    }
 
+    /* The socket lives in the *calling* user's home. If PAM hands us the target account
+     * (root) instead, there is nothing to talk to, which is worth seeing in the log. */
     struct passwd *pw = getpwnam(user);
-    if (pw == NULL || pw->pw_dir == NULL)
+    if (pw == NULL || pw->pw_dir == NULL) {
+        FACEID_LOG("no home directory for user '%s'; falling back to password", user);
         return PAM_AUTHINFO_UNAVAIL;
+    }
 
+    FACEID_LOG("invoked for user '%s' (home %s)", user, pw->pw_dir);
     return ask_daemon(pw->pw_dir, fast);
 }
 

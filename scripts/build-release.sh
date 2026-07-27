@@ -69,8 +69,17 @@ echo "══ 3  Vérification ══"
 codesign --verify --deep --strict --verbose=2 "$APP" 2>&1 | tail -3
 
 echo "══ 4  DMG ══"
+# Ship the /Applications symlink so the window shows the usual drag-to-install layout.
+# Running the app straight from the mounted image half-works and then breaks: the
+# privileged helper is registered from a path that disappears on eject, and sudo quietly
+# falls back to the password.
 rm -f "$DMG"
-hdiutil create -volname "Mugshot" -srcfolder "$APP" -ov -format UDZO "$DMG" >/dev/null
+STAGE="$HERE/dist/dmg-stage"
+rm -rf "$STAGE"; mkdir -p "$STAGE"
+cp -R "$APP" "$STAGE/"
+ln -s /Applications "$STAGE/Applications"
+hdiutil create -volname "Mugshot" -srcfolder "$STAGE" -ov -format UDZO "$DMG" >/dev/null
+rm -rf "$STAGE"
 
 echo "══ 5  Notarisation (upload + attente Apple) ══"
 xcrun notarytool submit "$DMG" --keychain-profile "$NOTARY_PROFILE" --wait

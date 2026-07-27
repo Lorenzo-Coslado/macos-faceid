@@ -440,6 +440,36 @@ TR = {
         "nl": "Geannuleerd: %@", "ja": "キャンセルされました: %@",
         "zh-Hans": "已取消：%@", "ko": "취소됨: %@", "ru": "Отменено: %@",
     },
+    "move.title": {
+        "en": "Move Mugshot to your Applications folder",
+        "fr": "Déplace Mugshot dans ton dossier Applications",
+    },
+    "move.body.dmg": {
+        "en": "Mugshot is running from the disk image. Face ID for sudo needs a privileged "
+              "helper, and that helper cannot survive the image being ejected.\n\n"
+              "Drag Mugshot onto the Applications folder in the disk image window, then "
+              "open it from there.",
+        "fr": "Mugshot s'exécute depuis l'image disque. Face ID pour sudo repose sur un "
+              "assistant privilégié, qui ne peut pas survivre à l'éjection de l'image.\n\n"
+              "Glisse Mugshot sur le dossier Applications dans la fenêtre de l'image "
+              "disque, puis ouvre-le depuis là.",
+    },
+    "move.body.other": {
+        "en": "Mugshot is running from outside the Applications folder. Face ID for sudo "
+              "needs a privileged helper registered from a stable location, so moving or "
+              "deleting the app later silently breaks it.\n\n"
+              "Move Mugshot to Applications and open it from there.",
+        "fr": "Mugshot s'exécute hors du dossier Applications. Face ID pour sudo repose "
+              "sur un assistant privilégié enregistré depuis un emplacement stable : "
+              "déplacer ou supprimer l'app ensuite le casse silencieusement.\n\n"
+              "Déplace Mugshot dans Applications et ouvre-le depuis là.",
+    },
+    "move.reveal": {
+        "en": "Show me", "fr": "Montre-moi",
+    },
+    "move.ignore": {
+        "en": "Continue anyway", "fr": "Continuer quand même",
+    },
     "fda.needed": {
         "en": "Full Disk Access needed (see the window).",
         "fr": "Accès complet au disque requis (voir la fenêtre).",
