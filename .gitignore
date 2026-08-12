@@ -60,3 +60,4 @@ assets/logos/
 .python/
 .venv.homebrew-backup/
 .python-pkg/
+helpers/camera-list

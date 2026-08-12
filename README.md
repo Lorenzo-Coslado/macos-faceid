@@ -46,26 +46,28 @@ The app is signed and notarized by Apple, so it opens without any security warni
 
 ### 2. Set up your face
 
-Launch **Mugshot** from Applications. A small face icon appears in your menu bar. Click
-it and choose **Set Up My Face**, then follow the enrollment (allow the camera when
-macOS asks). It takes a few seconds.
+Launch **Mugshot** from Applications. Its window opens, and a small face icon appears in
+your menu bar. Register your face when asked, allowing the camera when macOS prompts. It
+takes a few seconds.
 
 <div align="center"><img src="assets/onboarding.png" width="760" alt="Guided enrollment" /></div>
 
 ### 3. Turn on Face ID for sudo
 
-Open **Settings** from the menu and switch on **Enable Face ID for sudo**. Recent macOS
-versions lock down changes to the `sudo` configuration, so Mugshot uses a small signed
-helper and walks you through two one-time approvals:
+The window tells you what is still missing and carries the button that fixes it. Click
+**Enable**.
 
-1. **Allow the helper to run.** macOS asks you to approve it in **Settings › General ›
-   Login Items**. Turn it on.
-2. **Grant Full Disk Access.** macOS keeps the `sudo` PAM file behind Full Disk Access,
-   so the helper needs it to write that one file. Mugshot opens the right pane for you;
-   enable **MugshotHelper** in the list. It is only used to set up `sudo`, and nothing
-   ever leaves your Mac.
+Recent macOS versions lock down changes to the `sudo` configuration, so Mugshot uses a
+small signed helper, and macOS requires two one-time approvals for it. Both are listed
+up front, and each ticks itself off as soon as you grant it — you never have to start
+over:
 
-Flip the toggle on again and you are set. `sudo` always keeps your password as a fallback.
+1. **Allow the helper to run**, in **Settings › General › Login Items**.
+2. **Grant Full Disk Access** to *MugshotHelper*. macOS keeps the `sudo` PAM file behind
+   this permission, so the helper needs it to write that one file. It is used for
+   nothing else, and nothing ever leaves your Mac.
+
+Then Mugshot writes the rule. `sudo` always keeps your password as a fallback.
 
 <div align="center"><img src="assets/settings.png" width="760" alt="Settings window" /></div>
 
@@ -77,8 +79,12 @@ Run any `sudo` command in a terminal:
 sudo -k && sudo true
 ```
 
-The choice panel appears, the camera scans your face, and `sudo` unlocks. If the match
-fails for any reason, you simply get the normal password prompt.
+A capsule appears at the top of the screen, the camera scans your face, and `sudo`
+unlocks. **Click the capsule to fall back to your password** without waiting. If the
+match fails for any reason, you get the normal password prompt.
+
+If you would rather be asked every time, turn on **Choice panel** in Settings to get a
+Face ID / fingerprint / password panel before each scan.
 
 <div align="center"><img src="assets/modal.png" width="620" alt="Face ID choice panel" /></div>
 
@@ -189,8 +195,21 @@ the developer forums. For hands-free unlock, use an Apple Watch. The full write-
 <details>
 <summary><b>How do I uninstall it?</b></summary>
 
-Open Settings, turn off Face ID for sudo, quit the app, and move `Mugshot.app` to the
-Trash. To delete your enrolled face, run `rm -rf ~/Library/Application\ Support/faceid`.
+Open Mugshot and click **Uninstall Mugshot…** at the bottom of the window. It removes the
+`sudo` rule and the PAM module, restores the system Touch ID rule, unregisters the helper
+and the login item, optionally deletes your enrolled face, and then offers to move the app
+to the Trash.
+
+Dragging the app to the Trash on its own is not enough: it leaves the PAM module and the
+`sudo` rule behind, and system Touch ID for `sudo` stays switched off.
+</details>
+
+<details>
+<summary><b>Can I add a second look — glasses, a beard?</b></summary>
+
+Yes. In Mugshot's window, under *Your face*, click **Add an appearance…**. It adds to your
+enrolled face rather than replacing it, the way Face ID's alternate appearance does. Do it
+in the light you usually work in.
 </details>
 
 ## Contributing

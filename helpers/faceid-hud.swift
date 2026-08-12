@@ -32,6 +32,14 @@ let exeDir = URL(fileURLWithPath: CommandLine.arguments[0])
 let iconPath = exeDir.deletingLastPathComponent()
     .appendingPathComponent("assets/faceid-icon.png").path
 
+/// Vue qui capte le clic sans réclamer le focus.
+final class ClickView: NSView {
+    var onClick: (() -> Void)?
+    override func mouseDown(with event: NSEvent) { onClick?() }
+    /// Le premier clic doit agir directement, sans servir à « activer » la fenêtre.
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+}
+
 final class HUD: NSObject, NSApplicationDelegate {
     var window: NSWindow!
     var root: CALayer!          // contenu (pour scale global)
@@ -58,11 +66,15 @@ final class HUD: NSObject, NSApplicationDelegate {
         // (macOS peut malgré tout l'occulter : l'écran de verrouillage est sécurisé).
         window.level = NSWindow.Level(rawValue:
             Int(CGShieldingWindowLevel()))
-        window.ignoresMouseEvents = true
+        // Cliquable, désormais : sans le panneau de choix, la capsule est la seule
+        // échappatoire vers le mot de passe. Le clic n'active pas l'app et ne vole donc
+        // pas le focus du terminal d'où vient le `sudo`.
+        window.ignoresMouseEvents = false
         window.hasShadow = true
         window.collectionBehavior = [.canJoinAllSpaces, .stationary, .fullScreenAuxiliary]
 
-        let content = NSView(frame: NSRect(x: 0, y: 0, width: W, height: H))
+        let content = ClickView(frame: NSRect(x: 0, y: 0, width: W, height: H))
+        content.onClick = { [weak self] in self?.cancel() }
         content.wantsLayer = true
         window.contentView = content
 
@@ -294,6 +306,16 @@ final class HUD: NSObject, NSApplicationDelegate {
     }
 
     func quit() { NSApp.terminate(nil) }
+
+    /// Clic sur la capsule : on annonce l'abandon au daemon, qui coupe le scan et rend
+    /// la main au mot de passe. Écriture directe sur le descripteur 1, sans passer par
+    /// print : le daemon lit ligne par ligne et attend le retour chariot.
+    func cancel() {
+        guard !done else { return }
+        done = true
+        FileHandle.standardOutput.write("CANCEL\n".data(using: .utf8)!)
+        dismiss()
+    }
 
     // ---------- stdin ----------
     func listenStdin() {

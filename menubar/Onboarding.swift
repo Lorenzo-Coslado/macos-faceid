@@ -12,7 +12,13 @@ final class EnrollController: ObservableObject {
 
     var progress: Double { total > 0 ? min(1, Double(count) / Double(total)) : 0 }
 
-    func reset() { phase = .intro; count = 0; message = "" }
+    /// Ajouter une apparence plutôt que remplacer l'enrôlement.
+    @Published var appending = false
+
+    func reset(appending: Bool = false) {
+        phase = .intro; count = 0; message = ""
+        self.appending = appending
+    }
 
     func begin() {
         // Demande l'accès caméra (prompt attribué à Mugshot.app), puis lance le scan.
@@ -33,7 +39,7 @@ final class EnrollController: ObservableObject {
 
     private func startScan() {
         phase = .scanning; count = 0; message = ""
-        let (exe, args) = Run.faceidCmd(["enroll", "--json"])
+        let (exe, args) = Run.faceidCmd(["enroll", "--json"] + (appending ? ["--append"] : []))
         let p = Process()
         p.executableURL = URL(fileURLWithPath: exe)
         p.arguments = args
@@ -55,7 +61,7 @@ final class EnrollController: ObservableObject {
         p.terminationHandler = { _ in
             DispatchQueue.main.async {
                 if self.phase == .scanning {
-                    self.message = L("onb.interrupted")
+                    self.message = L("err.interrupted")
                     self.phase = .failed
                 }
             }
@@ -69,9 +75,18 @@ final class EnrollController: ObservableObject {
         case "start": total = ev["n"] as? Int ?? total
         case "progress": count = ev["i"] as? Int ?? count
         case "done": count = total; phase = .done
-        case "error": message = (ev["msg"] as? String) ?? "erreur"; phase = .failed
+        case "error": message = Self.describe(ev["msg"] as? String); phase = .failed
         default: break
         }
+    }
+
+    /// Le moteur émet un code stable ; on le traduit ici. Un code inconnu est affiché
+    /// tel quel plutôt que remplacé par un message générique : mieux vaut un mot
+    /// technique qu'aucune piste.
+    static func describe(_ code: String?) -> String {
+        guard let code, !code.isEmpty else { return L("onb.fail.title") }
+        let translated = L("err.\(code)")
+        return translated == "err.\(code)" ? code : translated
     }
 
     func cancel() { proc?.terminate() }
@@ -110,8 +125,9 @@ struct OnboardingView: View {
     private var intro: some View {
         VStack(spacing: 18) {
             logo.padding(.top, 8)
-            Text(L("onb.title")).font(.system(size: 24, weight: .bold))
-            Text(L("onb.intro"))
+            Text(c.appending ? L("onb.title.append") : L("onb.title"))
+                .font(.system(size: 24, weight: .bold))
+            Text(c.appending ? L("onb.intro.append") : L("onb.intro"))
                 .multilineTextAlignment(.center)
                 .foregroundStyle(.secondary)
                 .font(.system(size: 13))

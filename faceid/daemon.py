@@ -11,6 +11,7 @@ accès biométrique, donc c'est ce daemon — dans la session GUI — qui fait t
 """
 import os
 import subprocess
+import threading
 import time
 import socket
 import ctypes
@@ -43,23 +44,58 @@ def peer_euid(conn):
     return uid.value
 
 
+# Libellés du modal, dans la langue du système (cf. config.t). Ils sont aussi passés
+# à auth-modal en arguments : ce binaire n'a pas de bundle et ne peut pas les résoudre
+# lui-même.
+_L_TITLE = config.t("engine.prompt.title", "Authentication required")
+_L_SUBTITLE = config.t("engine.prompt.subtitle", "sudo wants to verify your identity")
+_L_FACE = config.t("engine.btn.face", "Use Face ID")
+_L_TOUCH = config.t("engine.btn.touch", "Use fingerprint")
+_L_PASSWORD = config.t("engine.btn.password", "Enter password")
+
+
+def _quote(s):
+    """Échappe une chaîne pour un littéral AppleScript."""
+    return s.replace("\\", "\\\\").replace('"', '\\"')
+
+
 def _build_applescript():
     """Modal de choix. Icône custom (glyphe Face ID) si présente, sinon icône système."""
     if config.MODAL_ICON.exists():
         icon = f'with icon POSIX file "{config.MODAL_ICON}"'
     else:
         icon = "with icon note"
+    # AppleScript ne renvoie que le libellé du bouton : on compare ensuite au libellé
+    # localisé plutôt qu'à un mot français.
     return (
-        'display dialog "Déverrouiller sudo — choisis ta méthode" '
-        'with title "Authentification" '
-        'buttons {"Mot de passe", "Empreinte", "Face ID"} '
-        f'default button "Face ID" {icon}\n'
+        f'display dialog "{_quote(_L_SUBTITLE)}" '
+        f'with title "{_quote(_L_TITLE)}" '
+        f'buttons {{"{_quote(_L_PASSWORD)}", "{_quote(_L_TOUCH)}", "{_quote(_L_FACE)}"}} '
+        f'default button "{_quote(_L_FACE)}" {icon}\n'
         'return button returned of result'
     )
 
 
 # Choix proposés dans le modal. Ordre = ordre des boutons (droite = défaut).
 _APPLESCRIPT = _build_applescript()
+
+
+def _adaptive_warmup(cap):
+    """Jette les premières frames, le temps que l'auto-exposition se stabilise.
+
+    On jetait un nombre fixe de frames (8), calibré au pire cas : sur une caméra qui
+    se stabilise vite, c'est du temps perdu à chaque `sudo`. On s'arrête maintenant dès
+    que la luminosité moyenne cesse de bouger, avec le même plafond qu'avant en garde-fou.
+    """
+    previous = None
+    for _ in range(config.CAMERA_WARMUP_FRAMES):
+        ok, frame = cap.read()
+        if not ok:
+            continue
+        brightness = float(frame.mean())
+        if previous is not None and abs(brightness - previous) < config.WARMUP_STABLE_DELTA:
+            return
+        previous = brightness
 
 
 class Daemon:
@@ -95,7 +131,10 @@ class Daemon:
         if config.AUTH_MODAL.exists():
             try:
                 r = subprocess.run(
-                    [str(config.AUTH_MODAL), "--timeout", "90"],
+                    [str(config.AUTH_MODAL), "--timeout", "90",
+                     "--title", _L_TITLE, "--subtitle", _L_SUBTITLE,
+                     "--face", _L_FACE, "--touch", _L_TOUCH,
+                     "--password", _L_PASSWORD],
                     capture_output=True, text=True, timeout=100,
                 )
                 choice = r.stdout.strip()
@@ -116,21 +155,39 @@ class Daemon:
         if r.returncode != 0:
             return "password"
         choice = r.stdout.strip()
-        if "Face" in choice:
+        if choice == _L_FACE:
             return "face"
-        if "Empreinte" in choice:
+        if choice == _L_TOUCH:
             return "touch"
         return "password"
 
     # ---- capsule HUD (Dynamic Island) ----
     def _hud_start(self):
+        """Lance la capsule. Retourne (process, event d'annulation)."""
         if not config.HUD_ENABLED or not config.FACEID_HUD.exists():
-            return None
+            return None, None
         try:
-            return subprocess.Popen([str(config.FACEID_HUD)], stdin=subprocess.PIPE)
+            hud = subprocess.Popen([str(config.FACEID_HUD)],
+                                   stdin=subprocess.PIPE, stdout=subprocess.PIPE)
         except OSError as e:
             log(f"hud start error : {e}")
-            return None
+            return None, None
+
+        # Sans panneau de choix, cliquer la capsule est la seule façon de renoncer au
+        # visage et de revenir au mot de passe sans attendre l'expiration du budget.
+        cancelled = threading.Event()
+
+        def watch():
+            try:
+                for line in hud.stdout:
+                    if line.strip().upper() == b"CANCEL":
+                        cancelled.set()
+                        return
+            except (OSError, ValueError):
+                pass
+
+        threading.Thread(target=watch, daemon=True).start()
+        return hud, cancelled
 
     @staticmethod
     def _hud_finish(hud, ok):
@@ -145,31 +202,37 @@ class Daemon:
 
     # ---- Face ID (caméra) ----
     def verify_face(self):
-        hud = self._hud_start()
-        ok, reason = self._verify_face_camera()
+        hud, cancelled = self._hud_start()
+        ok, reason = self._verify_face_camera(cancelled=cancelled)
         self._hud_finish(hud, ok)
         return ok, reason
 
     def verify_lock(self):
         # Écran verrouillé : pas de modal, visage direct, budget court.
         # Le HUD (Dynamic Island) est affiché comme sur sudo.
-        hud = self._hud_start()
-        ok, reason = self._verify_face_camera(timeout=config.LOCK_TIMEOUT_S)
+        hud, cancelled = self._hud_start()
+        ok, reason = self._verify_face_camera(timeout=config.LOCK_TIMEOUT_S,
+                                              cancelled=cancelled)
         self._hud_finish(hud, ok)
         return ok, f"[lock] {reason}"
 
-    def _verify_face_camera(self, timeout=None):
+    def _verify_face_camera(self, timeout=None, cancelled=None):
         self._maybe_reload()
         if self.enrolled is None or len(self.enrolled) == 0:
             return False, "no-enrollment"
         tmo = timeout if timeout else config.VERIFY_TIMEOUT_S
 
-        cap = cv2.VideoCapture(config.CAMERA_INDEX)
+        # Backend explicite : sans lui, OpenCV essaie ses backends dans l'ordre et perd
+        # du temps avant de retomber sur AVFoundation, le seul qui marche ici.
+        cap = cv2.VideoCapture(config.CAMERA_INDEX, cv2.CAP_AVFOUNDATION)
         if not cap.isOpened():
             return False, "camera-unavailable"
+        # 640×480 suffit largement : le visage doit faire 80 px au minimum, et une frame
+        # plus petite arrive plus vite et se détecte plus vite.
+        cap.set(cv2.CAP_PROP_FRAME_WIDTH, config.CAPTURE_WIDTH)
+        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, config.CAPTURE_HEIGHT)
 
-        for _ in range(config.CAMERA_WARMUP_FRAMES):
-            cap.read()
+        _adaptive_warmup(cap)
 
         matches = 0
         frames = 0
@@ -181,6 +244,8 @@ class Daemon:
         try:
             while (frames < config.VERIFY_MAX_FRAMES
                    and (time.time() - t0) < tmo):
+                if cancelled is not None and cancelled.is_set():
+                    return False, f"cancelled frames={frames}"
                 ok, frame = cap.read()
                 if not ok:
                     continue
@@ -219,7 +284,8 @@ class Daemon:
             return False, "touchid-helper-absent"
         try:
             r = subprocess.run(
-                [str(config.TOUCHID_HELPER), "Déverrouiller sudo"],
+                [str(config.TOUCHID_HELPER),
+                 config.t("engine.touchid.reason", "unlock sudo")],
                 capture_output=True, text=True, timeout=60,
             )
         except (subprocess.SubprocessError, OSError) as e:

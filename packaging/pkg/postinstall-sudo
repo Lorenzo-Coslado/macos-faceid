@@ -1,0 +1,25 @@
+#!/bin/bash
+# Composant optionnel « Face ID pour sudo » du paquet d'installation.
+#
+# C'est ici que se joue la simplification : l'Installeur macOS s'exécute en root avec le
+# droit d'écrire dans /etc/pam.d, ce qu'une app ne peut obtenir qu'au prix de deux
+# autorisations manuelles (Éléments d'ouverture pour le daemon privilégié, puis Accès
+# complet au disque). Une seule authentification remplace les deux.
+#
+# On ne réécrit rien ici : on appelle le script déjà utilisé par le daemon privilégié,
+# qui sauvegarde /etc/pam.d/sudo, valide le résultat avant de l'installer et revient en
+# arrière si la forme du fichier surprend.
+set -euo pipefail
+
+APP="/Applications/Mugshot.app"
+INSTALLER="$APP/Contents/Resources/scripts/pam-install-root.sh"
+
+if [ ! -x "/bin/bash" ] || [ ! -f "$INSTALLER" ]; then
+    echo "Mugshot: $INSTALLER introuvable; sudo laissé inchangé" >&2
+    # Sortie 0 volontaire : l'app est installée et utilisable, seule l'intégration sudo
+    # manque. Faire échouer le paquet entier pour ça serait disproportionné, et l'app
+    # sait activer sudo elle-même depuis ses réglages.
+    exit 0
+fi
+
+/bin/bash "$INSTALLER"

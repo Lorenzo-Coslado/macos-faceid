@@ -2,11 +2,26 @@
 
 Langue de base : anglais. macOS choisit automatiquement la langue selon les
 préférences système, avec repli sur l'anglais.
+
+Deux sorties, une seule source :
+  - i18n/<lang>.lproj/Localizable.strings — lu par l'app Swift ;
+  - i18n/engine.json — lu par le moteur Python, qui n'a pas de bundle et ne peut
+    donc pas passer par NSBundle. Sans lui, le moteur affichait ses invites en
+    français à tout le monde.
 """
+import json
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "i18n"
+
+# Clés servies au moteur Python (invites affichées pendant un `sudo`), par opposition
+# au reste qui ne sort jamais de l'app Swift.
+ENGINE_KEYS = (
+    "engine.prompt.title", "engine.prompt.subtitle",
+    "engine.btn.face", "engine.btn.touch", "engine.btn.password",
+    "engine.touchid.reason",
+)
 
 LANGS = ["en", "fr", "es", "de", "it", "pt-BR", "nl", "ja", "zh-Hans", "ko", "ru"]
 
@@ -95,10 +110,10 @@ TR = {
         "ru": "Запускать при входе",
     },
     "menu.quit": {
-        "en": "Quit FaceID", "fr": "Quitter FaceID", "es": "Salir de FaceID",
-        "de": "FaceID beenden", "it": "Esci da FaceID", "pt-BR": "Sair do FaceID",
-        "nl": "FaceID afsluiten", "ja": "FaceIDを終了", "zh-Hans": "退出 FaceID",
-        "ko": "FaceID 종료", "ru": "Завершить FaceID",
+        "en": "Quit Mugshot", "fr": "Quitter Mugshot", "es": "Salir de Mugshot",
+        "de": "Mugshot beenden", "it": "Esci da Mugshot", "pt-BR": "Sair do Mugshot",
+        "nl": "Mugshot afsluiten", "ja": "Mugshotを終了", "zh-Hans": "退出 Mugshot",
+        "ko": "Mugshot 종료", "ru": "Завершить Mugshot",
     },
     "notify.test.title": {
         "en": "Face ID Test", "fr": "Test Face ID", "es": "Prueba de Face ID",
@@ -283,11 +298,11 @@ TR = {
         "ru": "Повторить",
     },
     "set.title": {
-        "en": "FaceID Settings", "fr": "Réglages FaceID", "es": "Ajustes de FaceID",
-        "de": "FaceID-Einstellungen", "it": "Impostazioni FaceID",
-        "pt-BR": "Ajustes do FaceID", "nl": "FaceID-instellingen",
-        "ja": "FaceID設定", "zh-Hans": "FaceID 设置", "ko": "FaceID 설정",
-        "ru": "Настройки FaceID",
+        "en": "Mugshot Settings", "fr": "Réglages Mugshot", "es": "Ajustes de Mugshot",
+        "de": "Mugshot-Einstellungen", "it": "Impostazioni Mugshot",
+        "pt-BR": "Ajustes do Mugshot", "nl": "Mugshot-instellingen",
+        "ja": "Mugshot設定", "zh-Hans": "Mugshot 设置", "ko": "Mugshot 설정",
+        "ru": "Настройки Mugshot",
     },
     "set.section.face": {
         "en": "Your Face", "fr": "Ton visage", "es": "Tu rostro",
@@ -428,7 +443,10 @@ TR = {
         "ko": "높을수록 엄격함 (오인식 감소).",
         "ru": "Выше = строже (меньше ложных срабатываний).",
     },
-    "set.behavior.camera": {
+    # Distinct de "set.behavior.camera" (l'étiquette du menu déroulant) : les deux clés
+    # portaient le même nom, et celle-ci écrasait l'autre — le sélecteur de caméra
+    # s'intitulait donc « Réglages caméra système… ».
+    "set.behavior.camera.system": {
         "en": "System camera settings…", "fr": "Réglages caméra système…",
         "es": "Ajustes de cámara del sistema…", "de": "System-Kameraeinstellungen…",
         "it": "Impostazioni fotocamera di sistema…",
@@ -522,6 +540,772 @@ TR = {
     "fda.cancel": {
         "en": "Later", "fr": "Plus tard",
     },
+    # ---- désinstallation ----
+    "uninstall.action": {
+        "en": "Uninstall Mugshot…", "fr": "Désinstaller Mugshot…",
+        "es": "Desinstalar Mugshot…", "de": "Mugshot deinstallieren…",
+        "it": "Disinstalla Mugshot…", "pt-BR": "Desinstalar o Mugshot…",
+        "nl": "Mugshot verwijderen…", "ja": "Mugshotをアンインストール…",
+        "zh-Hans": "卸载 Mugshot…", "ko": "Mugshot 제거…",
+        "ru": "Удалить Mugshot…",
+    },
+    "uninstall.confirm.title": {
+        "en": "Uninstall Mugshot?", "fr": "Désinstaller Mugshot ?",
+        "es": "¿Desinstalar Mugshot?", "de": "Mugshot deinstallieren?",
+        "it": "Disinstallare Mugshot?", "pt-BR": "Desinstalar o Mugshot?",
+        "nl": "Mugshot verwijderen?", "ja": "Mugshotをアンインストールしますか？",
+        "zh-Hans": "要卸载 Mugshot 吗？", "ko": "Mugshot을 제거할까요?",
+        "ru": "Удалить Mugshot?",
+    },
+    "uninstall.confirm.body": {
+        "en": "This removes the sudo rule and the PAM module, restores the system Touch "
+              "ID rule, and unregisters the helper and the login item.\n\n"
+              "Dragging the app to the Trash on its own would leave all of that behind — "
+              "including system Touch ID for sudo, which would stay switched off.",
+        "fr": "Ceci retire la règle sudo et le module PAM, rétablit la règle Touch ID "
+              "système, et désenregistre l'assistant et l'ouverture à la session.\n\n"
+              "Mettre simplement l'app à la corbeille laisserait tout cela en place — "
+              "y compris Touch ID système pour sudo, qui resterait désactivé.",
+        "es": "Esto elimina la regla de sudo y el módulo PAM, restaura la regla de Touch "
+              "ID del sistema y da de baja el asistente y el ítem de inicio.\n\n"
+              "Arrastrar la app a la Papelera dejaría todo eso — incluido Touch ID del "
+              "sistema para sudo, que seguiría desactivado.",
+        "de": "Das entfernt die sudo-Regel und das PAM-Modul, stellt die System-Touch-ID-"
+              "Regel wieder her und meldet Helfer und Anmeldeobjekt ab.\n\n"
+              "Die App nur in den Papierkorb zu ziehen würde all das zurücklassen — "
+              "einschließlich System-Touch-ID für sudo, das ausgeschaltet bliebe.",
+        "it": "Rimuove la regola sudo e il modulo PAM, ripristina la regola Touch ID di "
+              "sistema e annulla la registrazione dell'assistente e dell'elemento login."
+              "\n\nTrascinare l'app nel Cestino lascerebbe tutto questo — compreso Touch "
+              "ID di sistema per sudo, che resterebbe disattivato.",
+        "pt-BR": "Isso remove a regra do sudo e o módulo PAM, restaura a regra do Touch ID "
+                 "do sistema e cancela o registro do auxiliar e do item de início.\n\n"
+                 "Arrastar o app para o Lixo deixaria tudo isso — inclusive o Touch ID do "
+                 "sistema para sudo, que continuaria desligado.",
+        "nl": "Dit verwijdert de sudo-regel en de PAM-module, herstelt de Touch ID-regel "
+              "van het systeem en meldt de helper en het inlogitem af.\n\n"
+              "De app alleen naar de prullenmand slepen zou dat allemaal achterlaten — "
+              "inclusief Touch ID van het systeem voor sudo, dat uit zou blijven.",
+        "ja": "sudoのルールとPAMモジュールを削除し、システムのTouch IDルールを復元して、"
+              "ヘルパーとログイン項目の登録を解除します。\n\nAppをゴミ箱に入れるだけでは"
+              "これらが残ります。sudo用のシステムTouch IDも無効のままになります。",
+        "zh-Hans": "这会移除 sudo 规则和 PAM 模块，恢复系统 Touch ID 规则，并注销辅助程序与登录项。"
+                   "\n\n仅把 App 拖到废纸篓会留下这一切——包括用于 sudo 的系统 Touch ID，它会一直处于关闭状态。",
+        "ko": "sudo 규칙과 PAM 모듈을 제거하고, 시스템 Touch ID 규칙을 복원하며, 도우미와 "
+              "로그인 항목의 등록을 해제합니다.\n\nApp을 휴지통으로 옮기기만 하면 이 모든 것이 "
+              "남습니다. sudo용 시스템 Touch ID도 꺼진 채로 유지됩니다.",
+        "ru": "Будут удалены правило sudo и модуль PAM, восстановлено системное правило "
+              "Touch ID, а помощник и объект входа — отменены.\n\nПросто перетащить "
+              "приложение в Корзину означало бы оставить всё это, включая системный "
+              "Touch ID для sudo, который остался бы отключённым.",
+    },
+    "uninstall.confirm.data": {
+        "en": "Also delete my enrolled face",
+        "fr": "Effacer aussi mon visage enregistré",
+        "es": "Eliminar también mi rostro registrado",
+        "de": "Auch mein erfasstes Gesicht löschen",
+        "it": "Elimina anche il mio volto registrato",
+        "pt-BR": "Também apagar meu rosto registrado",
+        "nl": "Verwijder ook mijn vastgelegde gezicht",
+        "ja": "登録した顔も削除する",
+        "zh-Hans": "同时删除已录入的面容",
+        "ko": "등록한 얼굴도 삭제",
+        "ru": "Также удалить зарегистрированное лицо",
+    },
+    "uninstall.confirm.ok": {
+        "en": "Uninstall", "fr": "Désinstaller", "es": "Desinstalar",
+        "de": "Deinstallieren", "it": "Disinstalla", "pt-BR": "Desinstalar",
+        "nl": "Verwijderen", "ja": "アンインストール", "zh-Hans": "卸载",
+        "ko": "제거", "ru": "Удалить",
+    },
+    "uninstall.running": {
+        "en": "Uninstalling…", "fr": "Désinstallation en cours…",
+        "es": "Desinstalando…", "de": "Wird deinstalliert…",
+        "it": "Disinstallazione…", "pt-BR": "Desinstalando…",
+        "nl": "Bezig met verwijderen…", "ja": "アンインストール中…",
+        "zh-Hans": "正在卸载…", "ko": "제거 중…", "ru": "Удаление…",
+    },
+    "uninstall.failed": {
+        "en": "Could not remove the sudo rule, so nothing was deleted: %@",
+        "fr": "Impossible de retirer la règle sudo : rien n'a été supprimé (%@)",
+        "es": "No se pudo quitar la regla de sudo, así que no se eliminó nada: %@",
+        "de": "Die sudo-Regel ließ sich nicht entfernen, daher wurde nichts gelöscht: %@",
+        "it": "Impossibile rimuovere la regola sudo, quindi non è stato eliminato nulla: %@",
+        "pt-BR": "Não foi possível remover a regra do sudo, então nada foi excluído: %@",
+        "nl": "De sudo-regel kon niet worden verwijderd, dus er is niets gewist: %@",
+        "ja": "sudoのルールを削除できなかったため、何も削除していません: %@",
+        "zh-Hans": "无法移除 sudo 规则，因此未删除任何内容：%@",
+        "ko": "sudo 규칙을 제거하지 못해 아무것도 삭제하지 않았습니다: %@",
+        "ru": "Не удалось удалить правило sudo, поэтому ничего не удалено: %@",
+    },
+    "uninstall.step.pam": {
+        "en": "sudo rule removed, system Touch ID restored",
+        "fr": "règle sudo retirée, Touch ID système rétabli",
+        "es": "regla de sudo eliminada, Touch ID del sistema restaurado",
+        "de": "sudo-Regel entfernt, System-Touch-ID wiederhergestellt",
+        "it": "regola sudo rimossa, Touch ID di sistema ripristinato",
+        "pt-BR": "regra do sudo removida, Touch ID do sistema restaurado",
+        "nl": "sudo-regel verwijderd, Touch ID van systeem hersteld",
+        "ja": "sudoルールを削除し、システムTouch IDを復元しました",
+        "zh-Hans": "已移除 sudo 规则，已恢复系统 Touch ID",
+        "ko": "sudo 규칙 제거, 시스템 Touch ID 복원",
+        "ru": "правило sudo удалено, системный Touch ID восстановлен",
+    },
+    "uninstall.step.helper": {
+        "en": "privileged helper unregistered",
+        "fr": "assistant privilégié désenregistré",
+        "es": "asistente con privilegios dado de baja",
+        "de": "privilegierter Helfer abgemeldet",
+        "it": "assistente privilegiato annullato",
+        "pt-BR": "auxiliar privilegiado desregistrado",
+        "nl": "bevoorrechte helper afgemeld",
+        "ja": "特権ヘルパーの登録を解除しました",
+        "zh-Hans": "已注销特权辅助程序",
+        "ko": "권한 도우미 등록 해제됨",
+        "ru": "привилегированный помощник отменён",
+    },
+    "uninstall.step.login": {
+        "en": "removed from login items", "fr": "retiré de l'ouverture à la session",
+        "es": "eliminado de los ítems de inicio", "de": "aus den Anmeldeobjekten entfernt",
+        "it": "rimosso dagli elementi login", "pt-BR": "removido dos itens de início",
+        "nl": "verwijderd uit inlogitems", "ja": "ログイン項目から削除しました",
+        "zh-Hans": "已从登录项中移除", "ko": "로그인 항목에서 제거됨",
+        "ru": "удалено из объектов входа",
+    },
+    "uninstall.step.data": {
+        "en": "enrolled face deleted", "fr": "visage enregistré effacé",
+        "es": "rostro registrado eliminado", "de": "erfasstes Gesicht gelöscht",
+        "it": "volto registrato eliminato", "pt-BR": "rosto registrado apagado",
+        "nl": "vastgelegd gezicht verwijderd", "ja": "登録した顔を削除しました",
+        "zh-Hans": "已删除录入的面容", "ko": "등록한 얼굴 삭제됨",
+        "ru": "зарегистрированное лицо удалено",
+    },
+    "uninstall.done.title": {
+        "en": "Mugshot has been removed from your system",
+        "fr": "Mugshot a été retiré de votre système",
+        "es": "Mugshot se ha eliminado de tu sistema",
+        "de": "Mugshot wurde von deinem System entfernt",
+        "it": "Mugshot è stato rimosso dal sistema",
+        "pt-BR": "O Mugshot foi removido do seu sistema",
+        "nl": "Mugshot is van je systeem verwijderd",
+        "ja": "Mugshotをシステムから削除しました",
+        "zh-Hans": "Mugshot 已从系统中移除",
+        "ko": "Mugshot을 시스템에서 제거했습니다",
+        "ru": "Mugshot удалён из системы",
+    },
+    "uninstall.done.body": {
+        "en": "All that is left is the app itself.",
+        "fr": "Il ne reste que l'app elle-même.",
+        "es": "Solo queda la propia app.",
+        "de": "Übrig ist nur noch die App selbst.",
+        "it": "Resta solo l'app.",
+        "pt-BR": "Resta apenas o próprio app.",
+        "nl": "Alleen de app zelf blijft over.",
+        "ja": "残っているのはApp本体だけです。",
+        "zh-Hans": "只剩下 App 本身。",
+        "ko": "이제 App 자체만 남았습니다.",
+        "ru": "Осталось только само приложение.",
+    },
+    "uninstall.done.trash": {
+        "en": "Move to Trash and Quit", "fr": "Mettre à la corbeille et quitter",
+        "es": "Mover a la Papelera y salir", "de": "In den Papierkorb legen und beenden",
+        "it": "Sposta nel Cestino ed esci", "pt-BR": "Mover para o Lixo e sair",
+        "nl": "Naar prullenmand en afsluiten", "ja": "ゴミ箱に入れて終了",
+        "zh-Hans": "移到废纸篓并退出", "ko": "휴지통으로 옮기고 종료",
+        "ru": "Переместить в Корзину и выйти",
+    },
+
+    # ---- mise en garde à la fermeture ----
+    "quit.title": {
+        "en": "Quitting turns off Face ID for sudo",
+        "fr": "Quitter désactive Face ID pour sudo",
+        "es": "Salir desactiva Face ID para sudo",
+        "de": "Beenden schaltet Face ID für sudo ab",
+        "it": "Uscire disattiva Face ID per sudo",
+        "pt-BR": "Sair desativa o Face ID para o sudo",
+        "nl": "Afsluiten schakelt Face ID voor sudo uit",
+        "ja": "終了するとsudo用のFace IDが働かなくなります",
+        "zh-Hans": "退出会关闭用于 sudo 的 Face ID",
+        "ko": "종료하면 sudo용 Face ID가 꺼집니다",
+        "ru": "Выход отключает Face ID для sudo",
+    },
+    "quit.body": {
+        "en": "Mugshot runs the recognition itself, so sudo will ask for your password "
+              "again until you reopen it.\n\nTo close the window without quitting, "
+              "press ⌘W.",
+        "fr": "Mugshot exécute lui-même la reconnaissance : sudo redemandera votre mot "
+              "de passe tant que vous ne l'aurez pas rouvert.\n\nPour fermer la fenêtre "
+              "sans quitter, appuyez sur ⌘W.",
+        "es": "Mugshot ejecuta el reconocimiento, así que sudo volverá a pedir tu "
+              "contraseña hasta que lo abras de nuevo.\n\nPara cerrar la ventana sin "
+              "salir, pulsa ⌘W.",
+        "de": "Mugshot führt die Erkennung selbst aus, daher fragt sudo wieder nach "
+              "deinem Passwort, bis du es erneut öffnest.\n\nUm das Fenster zu "
+              "schließen, ohne zu beenden, drücke ⌘W.",
+        "it": "Mugshot esegue il riconoscimento, quindi sudo tornerà a chiedere la "
+              "password finché non lo riapri.\n\nPer chiudere la finestra senza uscire, "
+              "premi ⌘W.",
+        "pt-BR": "O Mugshot faz o reconhecimento, então o sudo voltará a pedir sua senha "
+                 "até você abri-lo de novo.\n\nPara fechar a janela sem sair, tecle ⌘W.",
+        "nl": "Mugshot voert de herkenning zelf uit, dus sudo vraagt weer om je "
+              "wachtwoord tot je het opnieuw opent.\n\nDruk op ⌘W om het venster te "
+              "sluiten zonder af te sluiten.",
+        "ja": "Mugshot自身が認証を行うため、再度開くまでsudoはパスワードを求めます。\n\n"
+              "終了せずにウインドウを閉じるには ⌘W を押してください。",
+        "zh-Hans": "识别由 Mugshot 自身执行，因此在你重新打开之前，sudo 会再次要求输入密码。"
+                   "\n\n若只想关闭窗口而不退出，请按 ⌘W。",
+        "ko": "인식은 Mugshot이 직접 수행하므로, 다시 열기 전까지 sudo가 암호를 요구합니다."
+              "\n\n종료하지 않고 창만 닫으려면 ⌘W를 누르세요.",
+        "ru": "Распознавание выполняет сам Mugshot, поэтому sudo снова будет запрашивать "
+              "пароль, пока вы его не откроете.\n\nЧтобы закрыть окно, не выходя, "
+              "нажмите ⌘W.",
+    },
+    "quit.confirm": {
+        "en": "Quit anyway", "fr": "Quitter quand même", "es": "Salir de todos modos",
+        "de": "Trotzdem beenden", "it": "Esci comunque", "pt-BR": "Sair mesmo assim",
+        "nl": "Toch afsluiten", "ja": "それでも終了", "zh-Hans": "仍然退出",
+        "ko": "그래도 종료", "ru": "Всё равно выйти",
+    },
+    "quit.cancel": {
+        "en": "Keep running", "fr": "Laisser tourner", "es": "Dejar en marcha",
+        "de": "Weiterlaufen lassen", "it": "Lascia in esecuzione", "pt-BR": "Manter em execução",
+        "nl": "Laten draaien", "ja": "実行したままにする", "zh-Hans": "保持运行",
+        "ko": "계속 실행", "ru": "Оставить работать",
+    },
+
+    # ---- déplacement vers Applications ----
+    "move.doit": {
+        "en": "Move to Applications", "fr": "Déplacer vers Applications",
+        "es": "Mover a Aplicaciones", "de": "In „Programme“ bewegen",
+        "it": "Sposta in Applicazioni", "pt-BR": "Mover para Aplicativos",
+        "nl": "Naar Programma's verplaatsen", "ja": "「アプリケーション」に移動",
+        "zh-Hans": "移到“应用程序”", "ko": "‘응용 프로그램’으로 이동",
+        "ru": "Переместить в «Программы»",
+    },
+    "move.failed": {
+        "en": "Could not move Mugshot to Applications",
+        "fr": "Impossible de déplacer Mugshot vers Applications",
+        "es": "No se pudo mover Mugshot a Aplicaciones",
+        "de": "Mugshot konnte nicht nach „Programme“ bewegt werden",
+        "it": "Impossibile spostare Mugshot in Applicazioni",
+        "pt-BR": "Não foi possível mover o Mugshot para Aplicativos",
+        "nl": "Kon Mugshot niet naar Programma's verplaatsen",
+        "ja": "Mugshotを「アプリケーション」に移動できませんでした",
+        "zh-Hans": "无法将 Mugshot 移到“应用程序”",
+        "ko": "Mugshot을 ‘응용 프로그램’으로 이동할 수 없습니다",
+        "ru": "Не удалось переместить Mugshot в «Программы»",
+    },
+
+    # ---- apparences multiples ----
+    "set.face.append": {
+        "en": "Add an appearance…", "fr": "Ajouter une apparence…",
+        "es": "Añadir una apariencia…", "de": "Aussehen hinzufügen…",
+        "it": "Aggiungi un aspetto…", "pt-BR": "Adicionar uma aparência…",
+        "nl": "Uiterlijk toevoegen…", "ja": "容姿を追加…",
+        "zh-Hans": "添加一种外观…", "ko": "다른 모습 추가…",
+        "ru": "Добавить внешность…",
+    },
+    "set.face.append.desc": {
+        "en": "glasses, a beard, evening light",
+        "fr": "lunettes, barbe, lumière du soir",
+        "es": "gafas, barba, luz de la tarde",
+        "de": "Brille, Bart, Abendlicht",
+        "it": "occhiali, barba, luce serale",
+        "pt-BR": "óculos, barba, luz da noite",
+        "nl": "bril, baard, avondlicht",
+        "ja": "メガネ、ひげ、夕方の照明",
+        "zh-Hans": "眼镜、胡子、傍晚光线",
+        "ko": "안경, 수염, 저녁 조명",
+        "ru": "очки, борода, вечерний свет",
+    },
+    "onb.title.append": {
+        "en": "Add an Appearance", "fr": "Ajouter une apparence",
+        "es": "Añadir una apariencia", "de": "Aussehen hinzufügen",
+        "it": "Aggiungi un aspetto", "pt-BR": "Adicionar uma aparência",
+        "nl": "Uiterlijk toevoegen", "ja": "容姿を追加",
+        "zh-Hans": "添加一种外观", "ko": "다른 모습 추가",
+        "ru": "Добавить внешность",
+    },
+    "onb.intro.append": {
+        "en": "This adds to your enrolled face instead of replacing it. Useful with "
+              "glasses on, a new beard, or in the light you usually work in.",
+        "fr": "Ceci s'ajoute à votre visage enregistré au lieu de le remplacer. Utile "
+              "avec des lunettes, une nouvelle barbe, ou dans la lumière où vous "
+              "travaillez d'habitude.",
+        "es": "Esto se añade a tu rostro registrado en lugar de reemplazarlo. Útil con "
+              "gafas, una barba nueva o con la luz en la que sueles trabajar.",
+        "de": "Das ergänzt dein erfasstes Gesicht, statt es zu ersetzen. Nützlich mit "
+              "Brille, neuem Bart oder in deinem üblichen Arbeitslicht.",
+        "it": "Si aggiunge al volto registrato invece di sostituirlo. Utile con gli "
+              "occhiali, una barba nuova o con la luce in cui lavori di solito.",
+        "pt-BR": "Isso soma ao rosto já registrado em vez de substituí-lo. Útil de óculos, "
+                 "com barba nova ou na luz em que você costuma trabalhar.",
+        "nl": "Dit komt bij je vastgelegde gezicht in plaats van het te vervangen. Handig "
+              "met een bril, een nieuwe baard of in je gebruikelijke werklicht.",
+        "ja": "登録済みの顔を置き換えるのではなく追加します。メガネをかけたとき、ひげを"
+              "伸ばしたとき、いつも作業する照明のもとで役立ちます。",
+        "zh-Hans": "这会在已录入的面容上追加，而不是替换。戴眼镜、留了胡子，或在你常用的光线下很有用。",
+        "ko": "등록된 얼굴을 대체하지 않고 추가합니다. 안경을 썼을 때, 수염이 생겼을 때, "
+              "평소 작업하는 조명에서 유용합니다.",
+        "ru": "Это дополняет зарегистрированное лицо, а не заменяет его. Пригодится в "
+              "очках, с новой бородой или при вашем обычном освещении.",
+    },
+
+    # ---- bandeau d'état de la fenêtre principale ----
+    "banner.ready.title": {
+        "en": "Ready", "fr": "Prêt", "es": "Listo", "de": "Bereit", "it": "Pronto",
+        "pt-BR": "Pronto", "nl": "Klaar", "ja": "準備完了", "zh-Hans": "已就绪",
+        "ko": "준비됨", "ru": "Готово",
+    },
+    "banner.ready.detail": {
+        "en": "sudo unlocks with your face.",
+        "fr": "sudo se déverrouille avec votre visage.",
+        "es": "sudo se desbloquea con tu rostro.",
+        "de": "sudo wird mit deinem Gesicht entsperrt.",
+        "it": "sudo si sblocca con il tuo volto.",
+        "pt-BR": "o sudo é desbloqueado com seu rosto.",
+        "nl": "sudo wordt ontgrendeld met je gezicht.",
+        "ja": "sudoが顔でロック解除されます。",
+        "zh-Hans": "sudo 可用你的面容解锁。",
+        "ko": "sudo가 얼굴로 잠금 해제됩니다.",
+        "ru": "sudo разблокируется вашим лицом.",
+    },
+    "banner.ready.action": {
+        "en": "Test", "fr": "Tester", "es": "Probar", "de": "Testen", "it": "Prova",
+        "pt-BR": "Testar", "nl": "Testen", "ja": "テスト", "zh-Hans": "测试",
+        "ko": "테스트", "ru": "Проверить",
+    },
+    "banner.noface.title": {
+        "en": "No face registered yet", "fr": "Aucun visage enregistré",
+        "es": "Aún no hay rostro registrado", "de": "Noch kein Gesicht erfasst",
+        "it": "Nessun volto ancora registrato", "pt-BR": "Nenhum rosto registrado ainda",
+        "nl": "Nog geen gezicht vastgelegd", "ja": "顔がまだ登録されていません",
+        "zh-Hans": "尚未录入面容", "ko": "아직 등록된 얼굴이 없습니다",
+        "ru": "Лицо ещё не зарегистрировано",
+    },
+    "banner.noface.detail": {
+        "en": "Register your face to get started. It takes a few seconds.",
+        "fr": "Enregistrez votre visage pour commencer. Ça prend quelques secondes.",
+        "es": "Registra tu rostro para empezar. Solo toma unos segundos.",
+        "de": "Erfasse dein Gesicht, um zu starten. Das dauert nur Sekunden.",
+        "it": "Registra il tuo volto per iniziare. Bastano pochi secondi.",
+        "pt-BR": "Registre seu rosto para começar. Leva alguns segundos.",
+        "nl": "Leg je gezicht vast om te beginnen. Het duurt enkele seconden.",
+        "ja": "まず顔を登録してください。数秒で完了します。",
+        "zh-Hans": "先录入面容即可开始，只需几秒钟。",
+        "ko": "얼굴을 등록해 시작하세요. 몇 초면 됩니다.",
+        "ru": "Зарегистрируйте лицо, чтобы начать. Это займёт несколько секунд.",
+    },
+    "banner.nosudo.title": {
+        "en": "Not enabled for sudo", "fr": "Pas encore activé pour sudo",
+        "es": "Aún no activado para sudo", "de": "Für sudo noch nicht aktiviert",
+        "it": "Non ancora attivo per sudo", "pt-BR": "Ainda não ativado para o sudo",
+        "nl": "Nog niet ingeschakeld voor sudo", "ja": "sudo用に未設定です",
+        "zh-Hans": "尚未为 sudo 启用", "ko": "sudo용으로 켜지지 않음",
+        "ru": "Для sudo ещё не включено",
+    },
+    "banner.nosudo.detail": {
+        "en": "macOS asks for two approvals. Mugshot walks you through them.",
+        "fr": "macOS demande deux autorisations. Mugshot vous guide.",
+        "es": "macOS pide dos permisos. Mugshot te guía.",
+        "de": "macOS verlangt zwei Freigaben. Mugshot führt dich hindurch.",
+        "it": "macOS chiede due autorizzazioni. Mugshot ti guida.",
+        "pt-BR": "O macOS pede duas autorizações. O Mugshot conduz você.",
+        "nl": "macOS vraagt twee goedkeuringen. Mugshot leidt je erdoorheen.",
+        "ja": "macOSは2つの許可を求めます。Mugshotが順に案内します。",
+        "zh-Hans": "macOS 需要两项授权，Mugshot 会逐步引导你。",
+        "ko": "macOS는 두 가지 승인을 요구합니다. Mugshot이 안내합니다.",
+        "ru": "macOS запросит два разрешения. Mugshot проведёт вас по ним.",
+    },
+    "banner.nosudo.action": {
+        "en": "Enable", "fr": "Activer", "es": "Activar", "de": "Aktivieren",
+        "it": "Attiva", "pt-BR": "Ativar", "nl": "Inschakelen", "ja": "有効にする",
+        "zh-Hans": "启用", "ko": "켜기", "ru": "Включить",
+    },
+
+    # ---- feuille d'activation (les autorisations macOS) ----
+    "setup.title": {
+        "en": "Enable Face ID for sudo", "fr": "Activer Face ID pour sudo",
+        "es": "Activar Face ID para sudo", "de": "Face ID für sudo aktivieren",
+        "it": "Attiva Face ID per sudo", "pt-BR": "Ativar o Face ID para o sudo",
+        "nl": "Face ID inschakelen voor sudo", "ja": "sudo用のFace IDを有効にする",
+        "zh-Hans": "为 sudo 启用 Face ID", "ko": "sudo용 Face ID 켜기",
+        "ru": "Включить Face ID для sudo",
+    },
+    "setup.intro": {
+        "en": "macOS requires two approvals before Mugshot can touch the sudo "
+              "configuration. Each step ticks itself off as soon as you grant it — "
+              "you never have to start over.",
+        "fr": "macOS exige deux autorisations avant que Mugshot puisse toucher à la "
+              "configuration de sudo. Chaque étape se coche dès que vous l'accordez — "
+              "vous n'avez jamais à recommencer.",
+        "es": "macOS exige dos permisos antes de que Mugshot toque la configuración de "
+              "sudo. Cada paso se marca en cuanto lo concedes: nunca hay que empezar de nuevo.",
+        "de": "macOS verlangt zwei Freigaben, bevor Mugshot die sudo-Konfiguration ändern "
+              "darf. Jeder Schritt hakt sich selbst ab — du musst nie von vorn beginnen.",
+        "it": "macOS richiede due autorizzazioni prima che Mugshot possa toccare la "
+              "configurazione di sudo. Ogni passaggio si spunta da solo: non si ricomincia mai.",
+        "pt-BR": "O macOS exige duas autorizações antes que o Mugshot altere a configuração "
+                 "do sudo. Cada etapa se marca sozinha — nunca é preciso recomeçar.",
+        "nl": "macOS vereist twee goedkeuringen voordat Mugshot de sudo-configuratie mag "
+              "aanpassen. Elke stap vinkt zichzelf af — je hoeft nooit opnieuw te beginnen.",
+        "ja": "MugshotがsudoI設定に触れるには、macOSの許可が2つ必要です。許可すると各ステップは"
+              "自動でチェックされ、やり直す必要はありません。",
+        "zh-Hans": "在 Mugshot 修改 sudo 配置前，macOS 需要两项授权。每一步在你授权后会自动打勾，"
+                   "无需从头再来。",
+        "ko": "Mugshot이 sudo 설정을 변경하려면 macOS 승인 두 가지가 필요합니다. 각 단계는 "
+              "허용하는 즉시 자동으로 완료되며, 다시 시작할 필요가 없습니다.",
+        "ru": "macOS требует два разрешения, прежде чем Mugshot сможет менять настройку "
+              "sudo. Каждый шаг отмечается сам — начинать заново не придётся.",
+    },
+    "setup.step.helper": {
+        "en": "Allow Mugshot's helper", "fr": "Autoriser l'assistant de Mugshot",
+        "es": "Permitir el asistente de Mugshot", "de": "Mugshots Helfer erlauben",
+        "it": "Consenti l'assistente di Mugshot", "pt-BR": "Permitir o auxiliar do Mugshot",
+        "nl": "Mugshots helper toestaan", "ja": "Mugshotのヘルパーを許可",
+        "zh-Hans": "允许 Mugshot 的辅助程序", "ko": "Mugshot 도우미 허용",
+        "ru": "Разрешить помощник Mugshot",
+    },
+    "setup.step.helper.detail": {
+        "en": "In Settings › General › Login Items.",
+        "fr": "Dans Réglages › Général › Ouverture et extensions.",
+        "es": "En Ajustes › General › Ítems de inicio.",
+        "de": "In Einstellungen › Allgemein › Anmeldeobjekte.",
+        "it": "In Impostazioni › Generali › Elementi login.",
+        "pt-BR": "Em Ajustes › Geral › Itens de início.",
+        "nl": "In Instellingen › Algemeen › Inlogitems.",
+        "ja": "設定 › 一般 › ログイン項目。",
+        "zh-Hans": "在设置 › 通用 › 登录项。",
+        "ko": "설정 › 일반 › 로그인 항목.",
+        "ru": "В Настройках › Основные › Объекты входа.",
+    },
+    "setup.step.helper.waiting": {
+        "en": "Waiting for you to turn it on in System Settings…",
+        "fr": "En attente de son activation dans les Réglages Système…",
+        "es": "Esperando a que lo actives en Ajustes del Sistema…",
+        "de": "Warte darauf, dass du es in den Systemeinstellungen aktivierst…",
+        "it": "In attesa che tu lo attivi in Impostazioni di Sistema…",
+        "pt-BR": "Aguardando você ativar nos Ajustes do Sistema…",
+        "nl": "Wachten tot je het inschakelt in Systeeminstellingen…",
+        "ja": "システム設定でオンにするのを待っています…",
+        "zh-Hans": "等待你在系统设置中开启…",
+        "ko": "시스템 설정에서 켜기를 기다리는 중…",
+        "ru": "Ожидание включения в Настройках системы…",
+    },
+    "setup.step.fda": {
+        "en": "Grant Full Disk Access", "fr": "Accorder l'Accès complet au disque",
+        "es": "Conceder Acceso completo al disco", "de": "Vollen Festplattenzugriff gewähren",
+        "it": "Concedi Accesso completo al disco", "pt-BR": "Conceder Acesso total ao disco",
+        "nl": "Volledige schijftoegang verlenen", "ja": "フルディスクアクセスを許可",
+        "zh-Hans": "授予完全磁盘访问权限", "ko": "전체 디스크 접근 권한 허용",
+        "ru": "Предоставить полный доступ к диску",
+    },
+    "setup.step.fda.detail": {
+        "en": "macOS keeps the sudo configuration behind this permission.",
+        "fr": "macOS place la configuration de sudo derrière cette autorisation.",
+        "es": "macOS protege la configuración de sudo con este permiso.",
+        "de": "macOS schützt die sudo-Konfiguration mit dieser Berechtigung.",
+        "it": "macOS protegge la configurazione di sudo con questa autorizzazione.",
+        "pt-BR": "O macOS protege a configuração do sudo com essa permissão.",
+        "nl": "macOS beschermt de sudo-configuratie met deze toestemming.",
+        "ja": "macOSはsudoの設定をこの権限で保護しています。",
+        "zh-Hans": "macOS 用该权限保护 sudo 配置。",
+        "ko": "macOS는 이 권한으로 sudo 설정을 보호합니다.",
+        "ru": "macOS защищает настройку sudo этим разрешением.",
+    },
+    "setup.step.fda.waiting": {
+        "en": "Turn on “MugshotHelper” in the list, then come back here.",
+        "fr": "Activez « MugshotHelper » dans la liste, puis revenez ici.",
+        "es": "Activa «MugshotHelper» en la lista y vuelve aquí.",
+        "de": "Aktiviere „MugshotHelper“ in der Liste und komm dann zurück.",
+        "it": "Attiva «MugshotHelper» nell'elenco, poi torna qui.",
+        "pt-BR": "Ative “MugshotHelper” na lista e volte aqui.",
+        "nl": "Schakel “MugshotHelper” in de lijst in en kom terug.",
+        "ja": "リストで「MugshotHelper」をオンにして、ここに戻ってください。",
+        "zh-Hans": "在列表中开启“MugshotHelper”，然后回到这里。",
+        "ko": "목록에서 “MugshotHelper”를 켠 뒤 여기로 돌아오세요.",
+        "ru": "Включите «MugshotHelper» в списке и вернитесь сюда.",
+    },
+    "setup.step.rule": {
+        "en": "Write the sudo rule", "fr": "Écrire la règle sudo",
+        "es": "Escribir la regla de sudo", "de": "sudo-Regel schreiben",
+        "it": "Scrivi la regola sudo", "pt-BR": "Gravar a regra do sudo",
+        "nl": "De sudo-regel schrijven", "ja": "sudoルールを書き込む",
+        "zh-Hans": "写入 sudo 规则", "ko": "sudo 규칙 기록",
+        "ru": "Записать правило sudo",
+    },
+    "setup.step.rule.detail": {
+        "en": "Your password always stays as a fallback.",
+        "fr": "Votre mot de passe reste toujours en repli.",
+        "es": "Tu contraseña siempre queda como alternativa.",
+        "de": "Dein Passwort bleibt immer als Rückfallebene.",
+        "it": "La tua password resta sempre come ripiego.",
+        "pt-BR": "Sua senha continua sempre como alternativa.",
+        "nl": "Je wachtwoord blijft altijd als terugval.",
+        "ja": "パスワードは常に代替手段として残ります。",
+        "zh-Hans": "你的密码始终作为后备保留。",
+        "ko": "암호는 항상 대체 수단으로 남습니다.",
+        "ru": "Ваш пароль всегда остаётся запасным вариантом.",
+    },
+    "setup.open": {
+        "en": "Open", "fr": "Ouvrir", "es": "Abrir", "de": "Öffnen", "it": "Apri",
+        "pt-BR": "Abrir", "nl": "Openen", "ja": "開く", "zh-Hans": "打开",
+        "ko": "열기", "ru": "Открыть",
+    },
+    "setup.done": {
+        "en": "Done", "fr": "Terminé", "es": "Listo", "de": "Fertig", "it": "Fine",
+        "pt-BR": "Concluir", "nl": "Klaar", "ja": "完了", "zh-Hans": "完成",
+        "ko": "완료", "ru": "Готово",
+    },
+
+    # ---- menu ----
+    "menu.open": {
+        "en": "Open Mugshot", "fr": "Ouvrir Mugshot", "es": "Abrir Mugshot",
+        "de": "Mugshot öffnen", "it": "Apri Mugshot", "pt-BR": "Abrir o Mugshot",
+        "nl": "Mugshot openen", "ja": "Mugshotを開く", "zh-Hans": "打开 Mugshot",
+        "ko": "Mugshot 열기", "ru": "Открыть Mugshot",
+    },
+    "menu.restart": {
+        "en": "Restart Face ID", "fr": "Relancer Face ID", "es": "Reiniciar Face ID",
+        "de": "Face ID neu starten", "it": "Riavvia Face ID", "pt-BR": "Reiniciar o Face ID",
+        "nl": "Face ID herstarten", "ja": "Face IDを再起動", "zh-Hans": "重启 Face ID",
+        "ko": "Face ID 다시 시작", "ru": "Перезапустить Face ID",
+    },
+    "menu.status.ready": {
+        "en": "Ready", "fr": "Prêt", "es": "Listo", "de": "Bereit", "it": "Pronto",
+        "pt-BR": "Pronto", "nl": "Klaar", "ja": "準備完了", "zh-Hans": "已就绪",
+        "ko": "준비됨", "ru": "Готово",
+    },
+    "menu.status.stopped": {
+        "en": "Stopped", "fr": "Arrêté", "es": "Detenido", "de": "Gestoppt",
+        "it": "Arrestato", "pt-BR": "Parado", "nl": "Gestopt", "ja": "停止中",
+        "zh-Hans": "已停止", "ko": "중지됨", "ru": "Остановлено",
+    },
+    "menu.status.noface": {
+        "en": "No face registered", "fr": "Aucun visage enregistré",
+        "es": "Ningún rostro registrado", "de": "Kein Gesicht erfasst",
+        "it": "Nessun volto registrato", "pt-BR": "Nenhum rosto registrado",
+        "nl": "Geen gezicht vastgelegd", "ja": "顔が未登録",
+        "zh-Hans": "尚未录入面容", "ko": "등록된 얼굴 없음",
+        "ru": "Лицо не зарегистрировано",
+    },
+    "menu.status.nosudo": {
+        "en": "Not enabled for sudo", "fr": "Pas activé pour sudo",
+        "es": "No activado para sudo", "de": "Für sudo nicht aktiviert",
+        "it": "Non attivo per sudo", "pt-BR": "Não ativado para o sudo",
+        "nl": "Niet ingeschakeld voor sudo", "ja": "sudo用に未設定",
+        "zh-Hans": "未为 sudo 启用", "ko": "sudo용으로 꺼짐",
+        "ru": "Для sudo не включено",
+    },
+
+    # ---- état sudo dans la fenêtre principale ----
+    "set.sudo.on": {
+        "en": "Enabled for sudo", "fr": "Activé pour sudo", "es": "Activado para sudo",
+        "de": "Für sudo aktiviert", "it": "Attivo per sudo", "pt-BR": "Ativado para o sudo",
+        "nl": "Ingeschakeld voor sudo", "ja": "sudo用に有効", "zh-Hans": "已为 sudo 启用",
+        "ko": "sudo용으로 켜짐", "ru": "Включено для sudo",
+    },
+    "set.sudo.off": {
+        "en": "Not enabled", "fr": "Non activé", "es": "No activado",
+        "de": "Nicht aktiviert", "it": "Non attivo", "pt-BR": "Não ativado",
+        "nl": "Niet ingeschakeld", "ja": "未設定", "zh-Hans": "未启用",
+        "ko": "꺼짐", "ru": "Не включено",
+    },
+    "set.sudo.disable": {
+        "en": "Disable", "fr": "Désactiver", "es": "Desactivar", "de": "Deaktivieren",
+        "it": "Disattiva", "pt-BR": "Desativar", "nl": "Uitschakelen", "ja": "無効にする",
+        "zh-Hans": "停用", "ko": "끄기", "ru": "Отключить",
+    },
+
+    # ---- sensibilité en trois crans ----
+    "set.sensitivity.lenient": {
+        "en": "Lenient", "fr": "Tolérant", "es": "Tolerante", "de": "Locker",
+        "it": "Tollerante", "pt-BR": "Tolerante", "nl": "Soepel", "ja": "ゆるめ",
+        "zh-Hans": "宽松", "ko": "느슨함", "ru": "Мягкая",
+    },
+    "set.sensitivity.lenient.detail": {
+        "en": "Recognizes you more easily, including in poor light.",
+        "fr": "Vous reconnaît plus facilement, y compris en faible lumière.",
+        "es": "Te reconoce más fácilmente, incluso con poca luz.",
+        "de": "Erkennt dich leichter, auch bei wenig Licht.",
+        "it": "Ti riconosce più facilmente, anche con poca luce.",
+        "pt-BR": "Reconhece você mais facilmente, inclusive com pouca luz.",
+        "nl": "Herkent je makkelijker, ook bij weinig licht.",
+        "ja": "暗い場所でも認識しやすくなります。",
+        "zh-Hans": "更容易识别你，光线不足时也可以。",
+        "ko": "어두운 곳에서도 더 쉽게 인식합니다.",
+        "ru": "Легче узнаёт вас, в том числе при плохом освещении.",
+    },
+    "set.sensitivity.balanced": {
+        "en": "Balanced", "fr": "Équilibré", "es": "Equilibrado", "de": "Ausgewogen",
+        "it": "Bilanciato", "pt-BR": "Equilibrado", "nl": "Gebalanceerd", "ja": "標準",
+        "zh-Hans": "均衡", "ko": "균형", "ru": "Сбалансированная",
+    },
+    "set.sensitivity.balanced.detail": {
+        "en": "The recommended setting.",
+        "fr": "Le réglage recommandé.",
+        "es": "El ajuste recomendado.",
+        "de": "Die empfohlene Einstellung.",
+        "it": "L'impostazione consigliata.",
+        "pt-BR": "O ajuste recomendado.",
+        "nl": "De aanbevolen instelling.",
+        "ja": "推奨される設定です。",
+        "zh-Hans": "推荐设置。",
+        "ko": "권장 설정입니다.",
+        "ru": "Рекомендуемая настройка.",
+    },
+    "set.sensitivity.strict": {
+        "en": "Strict", "fr": "Strict", "es": "Estricto", "de": "Streng",
+        "it": "Severo", "pt-BR": "Rígido", "nl": "Streng", "ja": "厳格",
+        "zh-Hans": "严格", "ko": "엄격", "ru": "Строгая",
+    },
+    "set.sensitivity.strict.detail": {
+        "en": "Rejects more often, including you. Expect the password prompt more.",
+        "fr": "Refuse plus souvent, vous compris. Le mot de passe reviendra plus souvent.",
+        "es": "Rechaza más a menudo, a ti incluido. Verás más la contraseña.",
+        "de": "Lehnt häufiger ab, auch dich. Das Passwort wird öfter verlangt.",
+        "it": "Rifiuta più spesso, anche te. La password comparirà più spesso.",
+        "pt-BR": "Recusa com mais frequência, inclusive você. A senha aparecerá mais.",
+        "nl": "Weigert vaker, ook jou. Je krijgt vaker het wachtwoord.",
+        "ja": "本人でも拒否されやすくなり、パスワード入力が増えます。",
+        "zh-Hans": "拒绝更频繁，包括你本人，会更常要求输入密码。",
+        "ko": "본인도 더 자주 거부되어 암호 입력이 늘어납니다.",
+        "ru": "Чаще отклоняет, в том числе вас. Пароль будет запрашиваться чаще.",
+    },
+    "set.behavior.sensitivity.advanced": {
+        "en": "Advanced", "fr": "Avancé", "es": "Avanzado", "de": "Erweitert",
+        "it": "Avanzate", "pt-BR": "Avançado", "nl": "Geavanceerd", "ja": "詳細",
+        "zh-Hans": "高级", "ko": "고급", "ru": "Дополнительно",
+    },
+
+    # ---- diagnostic ----
+    "set.diagnose": {
+        "en": "Copy diagnostics", "fr": "Copier le diagnostic",
+        "es": "Copiar el diagnóstico", "de": "Diagnose kopieren",
+        "it": "Copia la diagnostica", "pt-BR": "Copiar o diagnóstico",
+        "nl": "Diagnose kopiëren", "ja": "診断情報をコピー",
+        "zh-Hans": "复制诊断信息", "ko": "진단 정보 복사",
+        "ru": "Скопировать диагностику",
+    },
+    "set.diagnose.running": {
+        "en": "Collecting…", "fr": "Collecte en cours…", "es": "Recopilando…",
+        "de": "Wird gesammelt…", "it": "Raccolta in corso…", "pt-BR": "Coletando…",
+        "nl": "Verzamelen…", "ja": "収集中…", "zh-Hans": "正在收集…",
+        "ko": "수집 중…", "ru": "Сбор данных…",
+    },
+    "set.diagnose.copied": {
+        "en": "Diagnostics copied to the clipboard. Paste it into your bug report.",
+        "fr": "Diagnostic copié dans le presse-papiers. Collez-le dans votre rapport.",
+        "es": "Diagnóstico copiado al portapapeles. Pégalo en tu informe.",
+        "de": "Diagnose in die Zwischenablage kopiert. Füge sie in deinen Bericht ein.",
+        "it": "Diagnostica copiata negli appunti. Incollala nella tua segnalazione.",
+        "pt-BR": "Diagnóstico copiado. Cole no seu relatório de problema.",
+        "nl": "Diagnose gekopieerd naar het klembord. Plak het in je melding.",
+        "ja": "診断情報をクリップボードにコピーしました。報告に貼り付けてください。",
+        "zh-Hans": "诊断信息已复制到剪贴板，请粘贴到你的问题报告中。",
+        "ko": "진단 정보를 클립보드에 복사했습니다. 버그 리포트에 붙여 넣으세요.",
+        "ru": "Диагностика скопирована в буфер обмена. Вставьте её в отчёт.",
+    },
+
+    # ---- causes d'échec renvoyées par le moteur ----
+    # Le moteur émet un code stable (`camera-unavailable`), l'app le traduit. Il
+    # renvoyait auparavant des phrases françaises, affichées telles quelles dans une
+    # interface anglaise.
+    "err.camera-unavailable": {
+        "en": "The camera is not available. Another app may be using it.",
+        "fr": "La caméra n'est pas disponible. Une autre app l'utilise peut-être.",
+        "es": "La cámara no está disponible. Puede que otra app la esté usando.",
+        "de": "Die Kamera ist nicht verfügbar. Möglicherweise nutzt sie eine andere App.",
+        "it": "La fotocamera non è disponibile. Forse è in uso da un'altra app.",
+        "pt-BR": "A câmera não está disponível. Outro app pode estar usando-a.",
+        "nl": "De camera is niet beschikbaar. Mogelijk gebruikt een andere app hem.",
+        "ja": "カメラを使用できません。他のAppが使用中の可能性があります。",
+        "zh-Hans": "摄像头不可用，可能有其他 App 正在使用。",
+        "ko": "카메라를 사용할 수 없습니다. 다른 App이 사용 중일 수 있습니다.",
+        "ru": "Камера недоступна. Возможно, её использует другое приложение.",
+    },
+    "err.not-enough-samples": {
+        "en": "Not enough usable captures. Try again with more light, facing the camera.",
+        "fr": "Pas assez de captures exploitables. Réessaie avec plus de lumière, face à la caméra.",
+        "es": "No hay suficientes capturas útiles. Inténtalo con más luz, de frente a la cámara.",
+        "de": "Zu wenige brauchbare Aufnahmen. Versuche es mit mehr Licht, direkt zur Kamera.",
+        "it": "Acquisizioni utili insufficienti. Riprova con più luce, di fronte alla fotocamera.",
+        "pt-BR": "Capturas úteis insuficientes. Tente com mais luz, de frente para a câmera.",
+        "nl": "Te weinig bruikbare opnames. Probeer opnieuw met meer licht, recht voor de camera.",
+        "ja": "有効な撮影が足りません。明るい場所でカメラに正対して再試行してください。",
+        "zh-Hans": "可用采集不足。请在更明亮处正对摄像头重试。",
+        "ko": "사용 가능한 촬영이 부족합니다. 더 밝은 곳에서 카메라를 정면으로 보고 다시 시도하세요.",
+        "ru": "Недостаточно пригодных снимков. Попробуйте при лучшем освещении, лицом к камере.",
+    },
+    "err.interrupted": {
+        "en": "Enrollment was interrupted.", "fr": "L'enrôlement a été interrompu.",
+        "es": "El registro se interrumpió.", "de": "Die Erfassung wurde abgebrochen.",
+        "it": "La registrazione è stata interrotta.", "pt-BR": "O registro foi interrompido.",
+        "nl": "De registratie is onderbroken.", "ja": "登録が中断されました。",
+        "zh-Hans": "录入被中断。", "ko": "등록이 중단되었습니다.",
+        "ru": "Регистрация прервана.",
+    },
+    "err.models-missing": {
+        "en": "The recognition models are missing. Reinstall Mugshot.",
+        "fr": "Les modèles de reconnaissance sont introuvables. Réinstalle Mugshot.",
+        "es": "Faltan los modelos de reconocimiento. Reinstala Mugshot.",
+        "de": "Die Erkennungsmodelle fehlen. Installiere Mugshot neu.",
+        "it": "Mancano i modelli di riconoscimento. Reinstalla Mugshot.",
+        "pt-BR": "Os modelos de reconhecimento estão ausentes. Reinstale o Mugshot.",
+        "nl": "De herkenningsmodellen ontbreken. Installeer Mugshot opnieuw.",
+        "ja": "認識モデルが見つかりません。Mugshotを再インストールしてください。",
+        "zh-Hans": "找不到识别模型，请重新安装 Mugshot。",
+        "ko": "인식 모델을 찾을 수 없습니다. Mugshot을 다시 설치하세요.",
+        "ru": "Модели распознавания не найдены. Переустановите Mugshot.",
+    },
+
+    # ---- invites affichées par le moteur pendant un `sudo` (→ i18n/engine.json) ----
+    "engine.prompt.title": {
+        "en": "Authentication required", "fr": "Authentification requise",
+        "es": "Autenticación requerida", "de": "Authentifizierung erforderlich",
+        "it": "Autenticazione richiesta", "pt-BR": "Autenticação necessária",
+        "nl": "Verificatie vereist", "ja": "認証が必要です",
+        "zh-Hans": "需要验证", "ko": "인증이 필요합니다",
+        "ru": "Требуется аутентификация",
+    },
+    "engine.prompt.subtitle": {
+        "en": "sudo wants to verify your identity",
+        "fr": "sudo souhaite vérifier votre identité",
+        "es": "sudo quiere verificar tu identidad",
+        "de": "sudo möchte deine Identität überprüfen",
+        "it": "sudo vuole verificare la tua identità",
+        "pt-BR": "o sudo quer verificar sua identidade",
+        "nl": "sudo wil je identiteit verifiëren",
+        "ja": "sudoがあなたの本人確認を求めています",
+        "zh-Hans": "sudo 需要验证你的身份",
+        "ko": "sudo가 본인 확인을 요청합니다",
+        "ru": "sudo хочет подтвердить вашу личность",
+    },
+    "engine.btn.face": {
+        "en": "Use Face ID", "fr": "Utiliser Face ID", "es": "Usar Face ID",
+        "de": "Face ID verwenden", "it": "Usa Face ID", "pt-BR": "Usar o Face ID",
+        "nl": "Face ID gebruiken", "ja": "Face IDを使用", "zh-Hans": "使用 Face ID",
+        "ko": "Face ID 사용", "ru": "Использовать Face ID",
+    },
+    "engine.btn.touch": {
+        "en": "Use fingerprint", "fr": "Utiliser l'empreinte", "es": "Usar la huella",
+        "de": "Fingerabdruck verwenden", "it": "Usa l'impronta", "pt-BR": "Usar a digital",
+        "nl": "Vingerafdruk gebruiken", "ja": "指紋を使用", "zh-Hans": "使用指纹",
+        "ko": "지문 사용", "ru": "Использовать отпечаток",
+    },
+    "engine.btn.password": {
+        "en": "Enter password", "fr": "Saisir le mot de passe", "es": "Escribir la contraseña",
+        "de": "Passwort eingeben", "it": "Inserisci la password", "pt-BR": "Digitar a senha",
+        "nl": "Wachtwoord invoeren", "ja": "パスワードを入力", "zh-Hans": "输入密码",
+        "ko": "암호 입력", "ru": "Ввести пароль",
+    },
+    "engine.touchid.reason": {
+        "en": "unlock sudo", "fr": "déverrouiller sudo", "es": "desbloquear sudo",
+        "de": "sudo entsperren", "it": "sbloccare sudo", "pt-BR": "desbloquear o sudo",
+        "nl": "sudo ontgrendelen", "ja": "sudoのロックを解除", "zh-Hans": "解锁 sudo",
+        "ko": "sudo 잠금 해제", "ru": "разблокировать sudo",
+    },
+
     "set.msg.approve": {
         "en": "Approve Mugshot in Settings › General › Login Items, then toggle again.",
         "fr": "Autorise Mugshot dans Réglages › Général › Ouverture, puis réactive.",
@@ -546,12 +1330,20 @@ def main():
     for lang in LANGS:
         d = OUT / f"{lang}.lproj"
         d.mkdir(parents=True, exist_ok=True)
-        lines = ['/* FaceID — auto-généré par make_i18n.py */']
+        lines = ['/* Mugshot — auto-généré par make_i18n.py */']
         for key, tr in TR.items():
             val = tr.get(lang, tr["en"])
             lines.append(f'"{key}" = "{escape(val)}";')
         (d / "Localizable.strings").write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+    engine = {lang: {k: TR[k].get(lang, TR[k]["en"]) for k in ENGINE_KEYS}
+              for lang in LANGS}
+    (OUT / "engine.json").write_text(
+        json.dumps(engine, ensure_ascii=False, indent=1, sort_keys=True) + "\n",
+        encoding="utf-8")
+
     print(f"{len(TR)} clés × {len(LANGS)} langues → {OUT}")
+    print(f"{len(ENGINE_KEYS)} clés moteur → {OUT / 'engine.json'}")
 
 
 if __name__ == "__main__":

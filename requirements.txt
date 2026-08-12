@@ -1,3 +1,6 @@
 numpy>=1.26
-opencv-contrib-python>=4.9,<5
+# headless, pas contrib : le moteur n'utilise que FaceDetectorYN, FaceRecognizerSF et
+# VideoCapture, tous dans le module principal. Les modules contrib et les backends
+# d'interface graphique pesaient une dizaine de mégaoctets pour rien.
+opencv-python-headless>=4.9,<5
 pyinstaller>=6.21,<7

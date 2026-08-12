@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Le paquet est en deux morceaux pour que l'intégration sudo reste un choix : brancher
+  la reconnaissance faciale sur `sudo` sans le demander serait déplacé, même si c'est la
+  raison d'être de l'app. La case est cochée par défaut, et se décoche ; l'app sait de
+  toute façon activer sudo plus tard depuis ses réglages.
+-->
+<installer-gui-script minSpecVersion="2">
+    <title>Mugshot</title>
+    <organization>com.lorenzo</organization>
+    <options customize="allow" require-scripts="false" hostArchitectures="arm64"/>
+
+    <volume-check>
+        <allowed-os-versions>
+            <os-version min="14.0"/>
+        </allowed-os-versions>
+    </volume-check>
+
+    <welcome file="welcome.html" mime-type="text/html"/>
+    <conclusion file="conclusion.html" mime-type="text/html"/>
+
+    <choices-outline>
+        <line choice="app"/>
+        <line choice="sudo"/>
+    </choices-outline>
+
+    <choice id="app"
+            title="Mugshot"
+            description="The app itself, installed in your Applications folder."
+            enabled="false"
+            selected="true">
+        <pkg-ref id="com.lorenzo.Mugshot.app"/>
+    </choice>
+
+    <choice id="sudo"
+            title="Enable Face ID for sudo"
+            description="Writes the sudo rule now, so you never have to grant Login Items and Full Disk Access by hand. Your password always stays as a fallback, and you can turn this off later in Mugshot's settings."
+            selected="true">
+        <pkg-ref id="com.lorenzo.Mugshot.sudo"/>
+    </choice>
+
+    <pkg-ref id="com.lorenzo.Mugshot.app" version="0" onConclusion="none">app.pkg</pkg-ref>
+    <pkg-ref id="com.lorenzo.Mugshot.sudo" version="0" onConclusion="none">sudo.pkg</pkg-ref>
+</installer-gui-script>

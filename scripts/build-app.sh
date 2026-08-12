@@ -82,11 +82,14 @@ cp "$HERE/helpertool/com.lorenzo.Mugshot.Helper.plist" "$APP/Contents/Library/La
 make -C "$HERE/pam" >/dev/null 2>&1 || true
 mkdir -p "$APP/Contents/Resources/pam" "$APP/Contents/Resources/scripts"
 cp "$HERE/pam/pam_faceid.so" "$APP/Contents/Resources/pam/" 2>/dev/null || true
-cp "$HERE/scripts/pam-install-root.sh" "$HERE/scripts/pam-uninstall-root.sh" "$APP/Contents/Resources/scripts/"
+cp "$HERE/scripts/pam-install-root.sh" "$HERE/scripts/pam-uninstall-root.sh" \
+   "$HERE/scripts/diagnose.sh" "$APP/Contents/Resources/scripts/"
 
-echo "== Traductions (.lproj) =="
+echo "== Traductions (.lproj + engine.json) =="
 "$HERE/.venv/bin/python" "$HERE/scripts/make_i18n.py"
 cp -R "$HERE"/i18n/*.lproj "$APP/Contents/Resources/"
+mkdir -p "$APP/Contents/Resources/i18n"
+cp "$HERE/i18n/engine.json" "$APP/Contents/Resources/i18n/"
 
 echo "== Compilation de l'app =="
 swiftc -O -swift-version 5 \
@@ -95,6 +98,9 @@ swiftc -O -swift-version 5 \
   "$HERE/menubar/Branding.swift" \
   "$HERE/menubar/Onboarding.swift" \
   "$HERE/menubar/SettingsView.swift" \
+  "$HERE/menubar/SetupFlow.swift" \
+  "$HERE/menubar/SetupSheet.swift" \
+  "$HERE/menubar/Uninstaller.swift" \
   "$HERE/menubar/HelperManager.swift" \
   "$HERE/helpertool/HelperProtocol.swift" \
   "$HERE/menubar/FaceIDApp.swift" \

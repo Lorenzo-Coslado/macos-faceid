@@ -6,6 +6,70 @@ All notable changes to this project are documented here. The format is based on
 
 ## [Unreleased]
 
+### Added
+
+- Opening Mugshot now opens a window. It used to place an icon in the menu bar and show
+  nothing, and clicking the app again while it ran did nothing at all — reopening was
+  never handled. The window stays hidden when macOS launches the app at login.
+- That window opens on a one-line verdict — *Ready*, *No face registered yet*, or *Not
+  enabled for sudo* — next to the button that fixes what is missing.
+- Enabling Face ID for sudo is now a list of the macOS approvals it requires. Each step
+  ticks itself off when you grant it, so you never re-flip a switch you already flipped.
+  The helper is asked whether it can write to `/etc/pam.d` before the attempt, instead of
+  the answer being inferred from a failure halfway through.
+- **Uninstall Mugshot…**, which undoes the `sudo` rule, restores the system Touch ID
+  rule, unregisters the helper and the login item, and offers to delete the enrolled
+  face. Dragging the app to the Trash left all of that behind, including system Touch ID
+  for `sudo`, which stayed switched off with no way to restore it from the interface.
+- **Add an appearance…**, which adds to the enrolled face instead of replacing it —
+  glasses, a beard, evening light.
+- Quitting while Face ID for sudo is on now says what that costs, since it silently sent
+  `sudo` back to the password prompt.
+- An installer package (`scripts/build-pkg.sh`). The system Installer already runs as
+  root with the right to write `/etc/pam.d`, so a single password replaces the two
+  approvals — and it puts the app in Applications itself. Enabling `sudo` is an optional,
+  pre-selected choice. Signing it needs a *Developer ID Installer* certificate.
+- Offering to move the app to Applications when launched from elsewhere, instead of only
+  explaining the problem.
+- Sensitivity as three named levels, the raw cosine value kept under *Advanced*.
+- **Copy diagnostics** in the window, and `diagnose.sh` shipped inside the bundle — it
+  previously required cloning the repository.
+
+### Changed
+
+- No choice panel before each `sudo` by default: the scan starts straight away. Clicking
+  the capsule falls back to the password without waiting for the timeout. The panel
+  remains available in Settings.
+- The camera opens through AVFoundation explicitly at 640×480, and warm-up now stops once
+  exposure settles rather than always discarding a fixed number of frames.
+- The menu says what Face ID's state is rather than a daemon's. *Stop Daemon*, which cut
+  `sudo` off in one click without saying so, is replaced by *Restart Face ID*, shown only
+  when it is stopped.
+- The app is called Mugshot throughout; parts of the interface still said FaceID.
+
+### Fixed
+
+- The engine spoke French to everyone. Enrolment errors, the fallback dialog and the
+  Touch ID prompt were hardcoded French strings surfacing in an interface translated into
+  eleven languages. The engine now emits stable codes, and its prompts come from the same
+  translation table as the app.
+- Dragging the sensitivity slider restarted the engine on every increment, leaving a
+  dozen processes competing for the same socket. The threshold is applied on release, and
+  restarts are serialised.
+- The camera picker in Settings was labelled *System camera settings…*: two translation
+  keys shared a name and one overwrote the other.
+- An environment flag that was set but empty (`FACEID_MODAL=`) counted as enabled.
+- Removing the `sudo` integration restored `pam_tid.so` with `sed -i`, which renames the
+  file — an operation SIP can refuse on `/etc/pam.d/sudo`, leaving system Touch ID off.
+  It is now rewritten in place and validated, as the install path already did.
+
+### Packaging
+
+- `opencv-contrib-python` replaced by `opencv-python-headless`, unused Haar cascades and
+  stdlib modules excluded, symbols stripped: 189 → 175 MB installed, 94 → 89 MB to
+  download. `packaging/faceid.spec` was regenerated and discarded on every build, so none
+  of its settings had ever applied; it is now used as written.
+
 ## [1.0.3] - 2026-07-27
 
 ### Fixed

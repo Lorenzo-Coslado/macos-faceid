@@ -1,0 +1,77 @@
+// Uninstaller.swift — retirer Mugshot proprement, depuis l'app.
+//
+// Jusqu'ici la seule marche à suivre était celle du README : désactiver sudo, quitter,
+// mettre l'app à la corbeille. Qui jette l'app sans passer par les réglages laisse
+// derrière lui le module PAM dans /usr/local/lib, la règle dans /etc/pam.d/sudo_local,
+// l'enregistrement du daemon privilégié — et surtout la ligne `pam_tid.so` commentée
+// dans /etc/pam.d/sudo, donc **Touch ID système désactivé pour sudo, définitivement**.
+// Rien dans l'interface ne pouvait le réparer.
+import AppKit
+import ServiceManagement
+
+enum Uninstaller {
+
+    struct Outcome {
+        var steps: [String] = []
+        var failure: String?
+    }
+
+    /// Séquence complète. `deleteData` efface aussi le visage enrôlé.
+    /// La réponse arrive sur le thread principal.
+    static func run(deleteData: Bool, done: @escaping (Outcome) -> Void) {
+        var outcome = Outcome()
+
+        // 1. Défaire la configuration système. C'est la seule étape qui exige le daemon
+        //    root, et la seule dont l'oubli abîme durablement la machine.
+        let finishSystemSide: (Bool, String) -> Void = { ok, msg in
+            if ok {
+                outcome.steps.append(L("uninstall.step.pam"))
+            } else if Status.sudoActive {
+                // La règle est encore là : on s'arrête plutôt que de jeter l'app en
+                // laissant sudo pointer vers un module qu'on vient de supprimer.
+                outcome.failure = msg
+                DispatchQueue.main.async { done(outcome) }
+                return
+            }
+
+            // 2. Désenregistrer le daemon privilégié et l'ouverture à la session.
+            HelperManager.shared.unregister()
+            outcome.steps.append(L("uninstall.step.helper"))
+            if #available(macOS 13.0, *) {
+                try? SMAppService.mainApp.unregister()
+                outcome.steps.append(L("uninstall.step.login"))
+            }
+
+            // 3. Les données locales, seulement si on l'a demandé.
+            if deleteData {
+                try? FileManager.default.removeItem(atPath: Paths.supportDir)
+                outcome.steps.append(L("uninstall.step.data"))
+            }
+
+            DispatchQueue.main.async { done(outcome) }
+        }
+
+        if Status.sudoActive {
+            HelperManager.shared.disableSudo(finishSystemSide)
+        } else {
+            // Rien à défaire côté système : on ne réveille pas le daemon root pour rien,
+            // et on évite de demander une autorisation à quelqu'un qui s'en va.
+            finishSystemSide(true, "")
+        }
+    }
+
+    /// Met le bundle à la corbeille puis quitte. Appelé après `run`.
+    static func trashAppAndQuit() {
+        AppController.suppressQuitWarning = true
+        let url = Bundle.main.bundleURL
+        NSWorkspace.shared.recycle([url]) { _, _ in
+            DispatchQueue.main.async { NSApp.terminate(nil) }
+        }
+    }
+
+    /// Quitter sans jeter le bundle (l'utilisateur préfère le supprimer lui-même).
+    static func quitOnly() {
+        AppController.suppressQuitWarning = true
+        NSApp.terminate(nil)
+    }
+}

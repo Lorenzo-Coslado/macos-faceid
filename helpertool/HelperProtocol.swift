@@ -11,8 +11,15 @@ public protocol MugshotHelperProtocol {
     func disableSudo(withReply reply: @escaping (Bool, String) -> Void)
     /// Version du helper, pour vérifier l'accord app/daemon.
     func version(withReply reply: @escaping (String) -> Void)
+    /// Le helper peut-il écrire dans /etc/pam.d ? Sans Accès complet au disque, non.
+    ///
+    /// Posé en question à part pour que l'app puisse *demander avant d'agir* : elle
+    /// déduisait auparavant l'absence d'autorisation d'un « Operation not permitted »
+    /// survenu au milieu de l'installation, donc après avoir laissé croire que ça
+    /// marchait. Ne modifie rien.
+    func checkAccess(withReply reply: @escaping (Bool, String) -> Void)
 }
 
 /// Nom du service mach + label du daemon (partagé app/helper).
 public let kMugshotHelperMachService = "com.lorenzo.Mugshot.Helper"
-public let kMugshotHelperVersion = "1"
+public let kMugshotHelperVersion = "2"

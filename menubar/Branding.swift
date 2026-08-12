@@ -42,16 +42,27 @@ enum Paths {
         bundled ? res("pam/pam_faceid.so") : "\(root)/pam/pam_faceid.so"
     }
 
+    static var i18nDir: String { bundled ? res("i18n") : "\(root)/i18n" }
+
     static func script(_ n: String) -> String { "\(scriptsDir)/\(n)" }
     static var supportDir: String {
         NSString(string: "~/Library/Application Support/faceid").expandingTildeInPath
     }
 
     /// Env passé aux process enfants pour trouver les ressources du bundle.
+    ///
+    /// `FACEID_LANG` transmet la localisation que macOS a retenue pour l'app : le
+    /// moteur n'a pas de bundle et ne peut pas la résoudre lui-même, si bien qu'il
+    /// affichait ses invites en français quelle que soit la langue du système.
     static var childEnv: [String: String] {
-        bundled ? ["FACEID_HELPERS_DIR": helpersDir,
-                   "FACEID_ASSETS_DIR": assetsDir,
-                   "FACEID_MODELS_DIR": modelsDir] : [:]
+        var e = ["FACEID_LANG": Bundle.main.preferredLocalizations.first ?? "en",
+                 "FACEID_I18N": i18nDir]
+        if bundled {
+            e["FACEID_HELPERS_DIR"] = helpersDir
+            e["FACEID_ASSETS_DIR"] = assetsDir
+            e["FACEID_MODELS_DIR"] = modelsDir
+        }
+        return e
     }
 }
 
@@ -103,7 +114,7 @@ final class Settings: ObservableObject {
 
     private init() {
         threshold = d.object(forKey: "faceid.threshold") as? Double ?? 0.36
-        modal = d.object(forKey: "faceid.modal") as? Bool ?? true
+        modal = d.object(forKey: "faceid.modal") as? Bool ?? false
         hud = d.object(forKey: "faceid.hud") as? Bool ?? true
         cameraIndex = d.object(forKey: "faceid.camera") as? Int ?? -1
     }

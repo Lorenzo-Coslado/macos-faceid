@@ -1,7 +1,12 @@
 """Enrôlement : capture ton visage et enregistre les embeddings de référence.
 
-Usage :  python -m faceid.enroll [--json]
-  --json : émet la progression en JSON (une ligne par événement) pour l'UI.
+Usage :  python -m faceid.enroll [--json] [--append]
+  --json   : émet la progression en JSON (une ligne par événement) pour l'UI.
+  --append : ajoute une apparence au lieu de remplacer l'enrôlement existant.
+
+L'ajout sert exactement à ce que fait le vrai Face ID avec ses « apparences » : des
+lunettes, une barbe, la lumière du soir. `best_match` compare déjà à tous les vecteurs
+enregistrés, donc ajouter revient à concaténer.
 """
 import sys
 import json
@@ -11,12 +16,16 @@ import numpy as np
 import cv2
 
 from . import config
-from .recognizer import FaceEngine, save_embeddings
+from .recognizer import FaceEngine, load_embeddings, save_embeddings
 
 JSON = "--json" in sys.argv
+APPEND = "--append" in sys.argv
 
 
 def emit(**ev):
+    """Émet un événement. Les erreurs portent un CODE stable (`msg`), pas une phrase :
+    l'app le traduit via la clé `err.<code>`. Auparavant le moteur renvoyait des
+    phrases françaises, affichées telles quelles dans une interface anglaise."""
     if JSON:
         print(json.dumps(ev), flush=True)
     else:
@@ -50,13 +59,15 @@ def main():
     try:
         engine = FaceEngine()
     except FileNotFoundError as e:
-        emit(event="error", msg=str(e))
+        emit(event="error", msg="models-missing", detail=str(e))
         return 1
 
-    cap = cv2.VideoCapture(config.CAMERA_INDEX)
+    cap = cv2.VideoCapture(config.CAMERA_INDEX, cv2.CAP_AVFOUNDATION)
     if not cap.isOpened():
         emit(event="error", msg="camera-unavailable")
         return 1
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, config.CAPTURE_WIDTH)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, config.CAPTURE_HEIGHT)
 
     for _ in range(config.CAMERA_WARMUP_FRAMES):
         cap.read()
@@ -77,21 +88,30 @@ def main():
                 last_capture = now
                 emit(event="progress", i=len(samples), n=config.ENROLL_SAMPLES)
     except KeyboardInterrupt:
-        emit(event="error", msg="interrompu")
+        emit(event="error", msg="interrupted")
         return 1
     finally:
         cap.release()
 
     if len(samples) < config.ENROLL_SAMPLES:
-        emit(event="error", msg="pas assez d'échantillons")
+        emit(event="error", msg="not-enough-samples")
         return 1
 
     kept_arr, scores, kept = _filter_outliers(samples)
     dropped = len(samples) - len(kept)
-    save_embeddings(kept_arr)
 
+    # Cohérence calculée sur la seule nouvelle série : la mélanger aux apparences déjà
+    # enregistrées ferait chuter le chiffre alors que la capture est bonne — deux
+    # apparences se ressemblent moins entre elles qu'une apparence avec elle-même.
     mean = kept_arr.mean(axis=0)
     cons = float(np.mean([FaceEngine.cosine(mean, s) for s in kept_arr]))
+
+    if APPEND:
+        existing = load_embeddings()
+        if existing is not None and len(existing):
+            kept_arr = np.vstack([existing, kept_arr])
+    save_embeddings(kept_arr)
+
     emit(event="done", kept=len(kept_arr), dropped=dropped, consistency=cons)
     return 0
 

@@ -1,26 +1,33 @@
 // auth-modal — panneau de choix d'authentification, style alerte macOS moderne.
 //
-//   auth-modal [--timeout N]
+//   auth-modal [--timeout N] [--title T] [--subtitle S]
+//              [--face F] [--touch U] [--password P]
 //
 // Affiche : icône Face ID, titre, sous-titre, 3 boutons empilés.
 // Écrit sur stdout le choix : "face" | "touch" | "password", puis exit 0.
 // Timeout (défaut 90 s), fermeture ou Échap -> "password".
 //
+// Les libellés viennent du daemon, qui les lit dans i18n/engine.json : ce binaire n'a
+// pas de bundle, donc pas de .lproj, et il ne couvrait que l'anglais et le français
+// alors que l'app est traduite en onze langues.
+//
 // Compilation :
 //   swiftc -O -o auth-modal auth-modal.swift -framework AppKit
 import AppKit
 
-// ---- localisation (anglais par défaut, français si le système est en FR) ----
-let isFR = (Locale.preferredLanguages.first ?? "en").hasPrefix("fr")
-func T(_ en: String, _ fr: String) -> String { isFR ? fr : en }
-
 // ---- arguments ----
-var timeoutS: Double = 90
-if let i = CommandLine.arguments.firstIndex(of: "--timeout"),
-   i + 1 < CommandLine.arguments.count,
-   let v = Double(CommandLine.arguments[i + 1]) {
-    timeoutS = v
+func arg(_ name: String, _ fallback: String) -> String {
+    let a = CommandLine.arguments
+    guard let i = a.firstIndex(of: name), i + 1 < a.count else { return fallback }
+    return a[i + 1]
 }
+
+let timeoutS = Double(arg("--timeout", "90")) ?? 90
+let titleText = arg("--title", "Authentication required")
+let subtitleText = arg("--subtitle", "sudo wants to verify your identity")
+let faceText = arg("--face", "Use Face ID")
+let touchText = arg("--touch", "Use fingerprint")
+let passwordText = arg("--password", "Enter password")
 
 // Icône : ../assets/faceid-icon.png relatif à l'exécutable.
 let exeDir = URL(fileURLWithPath: CommandLine.arguments[0])
@@ -98,19 +105,19 @@ final class Delegate: NSObject, NSApplicationDelegate {
         icon.heightAnchor.constraint(equalToConstant: 72).isActive = true
 
         // Titre + sous-titre
-        let title = NSTextField(labelWithString: T("Authentication required", "Authentification requise"))
+        let title = NSTextField(labelWithString: titleText)
         title.font = .systemFont(ofSize: 15, weight: .semibold)
         title.alignment = .center
 
-        let subtitle = NSTextField(labelWithString: T("sudo wants to verify your identity", "sudo souhaite vérifier ton identité"))
+        let subtitle = NSTextField(labelWithString: subtitleText)
         subtitle.font = .systemFont(ofSize: 11.5)
         subtitle.textColor = .secondaryLabelColor
         subtitle.alignment = .center
 
         // Boutons (principal en bas de pile visuelle inversée : Face ID en haut)
-        let faceBtn = makeButton(T("Use Face ID", "Utiliser Face ID"), #selector(chooseFace), isDefault: true)
-        let touchBtn = makeButton(T("Use fingerprint", "Utiliser l'empreinte"), #selector(chooseTouch))
-        let pwdBtn = makeButton(T("Enter password", "Saisir le mot de passe"), #selector(choosePassword),
+        let faceBtn = makeButton(faceText, #selector(chooseFace), isDefault: true)
+        let touchBtn = makeButton(touchText, #selector(chooseTouch))
+        let pwdBtn = makeButton(passwordText, #selector(choosePassword),
                                 key: "\u{1b}")   // Échap
 
         let stack = NSStackView(views: [icon, title, subtitle, faceBtn, touchBtn, pwdBtn])

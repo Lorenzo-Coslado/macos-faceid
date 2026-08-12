@@ -9,9 +9,20 @@ if [ -f /etc/pam.d/sudo_local ]; then
 fi
 rm -f /usr/local/lib/pam/pam_faceid.so || true
 
-# réactive Touch ID système
+# Réactive Touch ID système. Écriture EN PLACE (cat >) comme à l'installation : `sed -i`
+# passe par un fichier temporaire puis un rename, ce que SIP peut refuser sur
+# /etc/pam.d/sudo — et un échec ici laisserait Touch ID désactivé pour toujours.
 if grep -q '^#faceid# ' /etc/pam.d/sudo 2>/dev/null; then
-  sed -i '' -E 's/^#faceid# //' /etc/pam.d/sudo
+  tmp="$(mktemp)"
+  if sed -E 's/^#faceid# //' /etc/pam.d/sudo > "$tmp" \
+     && grep -q 'pam_opendirectory.so' "$tmp"; then
+    chmod u+w /etc/pam.d/sudo 2>/dev/null || true
+    cat "$tmp" > /etc/pam.d/sudo 2>/dev/null \
+      || echo "warning: could not restore pam_tid.so in /etc/pam.d/sudo" >&2
+    chown root:wheel /etc/pam.d/sudo 2>/dev/null || true
+    chmod 444 /etc/pam.d/sudo 2>/dev/null || true
+  fi
+  rm -f "$tmp"
 fi
 
 echo "OK"

@@ -72,6 +72,29 @@ final class HelperDelegate: NSObject, NSXPCListenerDelegate, MugshotHelperProtoc
     func version(withReply reply: @escaping (String) -> Void) {
         reply(kMugshotHelperVersion)
     }
+
+    /// Crée puis efface aussitôt un fichier témoin dans /etc/pam.d. C'est la seule
+    /// façon fiable de savoir si l'Accès complet au disque est accordé : TCC ne
+    /// répond qu'au moment de l'écriture. Le témoin est un fichier caché qu'aucune
+    /// règle PAM n'inclut, donc inerte même s'il survivait à un arrêt brutal.
+    func checkAccess(withReply reply: @escaping (Bool, String) -> Void) {
+        let probe = "/etc/pam.d/.mugshot-access-probe"
+        let fd = open(probe, O_WRONLY | O_CREAT | O_EXCL, 0o600)
+        if fd >= 0 {
+            close(fd)
+            unlink(probe)
+            reply(true, "write access to /etc/pam.d granted")
+            return
+        }
+        // EEXIST : un témoin traîne d'une exécution précédente — donc on avait le
+        // droit d'écrire. On le nettoie et on considère l'accès acquis.
+        if errno == EEXIST {
+            unlink(probe)
+            reply(true, "write access to /etc/pam.d granted")
+            return
+        }
+        reply(false, "cannot write to /etc/pam.d: \(String(cString: strerror(errno)))")
+    }
 }
 
 let delegate = HelperDelegate()
