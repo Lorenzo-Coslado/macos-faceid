@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format is based on
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-08-14
+
 ### Added
 
 - Opening Mugshot now opens a window. It used to place an icon in the menu bar and show
@@ -144,5 +146,8 @@ checks and for adding the deployment-target audit ([#5](https://github.com/Loren
 - The PAM rule is `sufficient`: any failure falls back to the password, no lockout.
 - Face embeddings stay local and never leave the machine.
 
-[Unreleased]: https://github.com/Lorenzo-Coslado/macos-faceid/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/Lorenzo-Coslado/macos-faceid/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/Lorenzo-Coslado/macos-faceid/compare/v1.0.3...v1.1.0
+[1.0.3]: https://github.com/Lorenzo-Coslado/macos-faceid/compare/v1.0.2...v1.0.3
+[1.0.2]: https://github.com/Lorenzo-Coslado/macos-faceid/compare/v1.0.0...v1.0.2
 [1.0.0]: https://github.com/Lorenzo-Coslado/macos-faceid/releases/tag/v1.0.0
