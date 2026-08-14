@@ -80,6 +80,11 @@ echo "══ 4  DMG ══"
 # falls back to the password.
 "$HERE/.venv/bin/python" "$HERE/scripts/make_dmg_background.py" >/dev/null
 bash "$HERE/scripts/make-dmg.sh" "$APP" "$DMG"
+# Signer le conteneur lui-même, et pas seulement ce qu'il transporte. Sans cela il
+# porte bien un ticket de notarisation, mais `spctl -a -t open` le refuse en
+# « no usable signature » : rien n'atteste que l'image n'a pas été altérée après coup.
+# À faire AVANT la notarisation, sinon le ticket ne correspond plus au fichier signé.
+codesign --force --timestamp --sign "$DEV_ID" "$DMG"
 
 # Le paquet contient l'app SIGNÉE ci-dessus : il doit donc être construit après l'étape 2,
 # jamais avant. Il porte le chemin d'installation à une seule autorisation ;
@@ -107,7 +112,10 @@ if [ "$BUILD_PKG" != "0" ]; then
 fi
 
 echo "══ 8  Vérification Gatekeeper ══"
+# Ce que verra quelqu'un qui télécharge : l'app doit être notarisée, l'image et le
+# paquet doivent l'être ET porter une signature valide.
 spctl -a -vv -t exec "$APP" 2>&1 | head -2
+spctl -a -vv -t open --context context:primary-signature "$DMG" 2>&1 | head -2
 if [ "$BUILD_PKG" != "0" ]; then
   spctl -a -vv -t install "$PKG" 2>&1 | head -2
 fi
