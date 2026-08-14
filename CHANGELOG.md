@@ -25,10 +25,12 @@ All notable changes to this project are documented here. The format is based on
   glasses, a beard, evening light.
 - Quitting while Face ID for sudo is on now says what that costs, since it silently sent
   `sudo` back to the password prompt.
-- An installer package (`scripts/build-pkg.sh`). The system Installer already runs as
-  root with the right to write `/etc/pam.d`, so a single password replaces the two
-  approvals — and it puts the app in Applications itself. Enabling `sudo` is an optional,
-  pre-selected choice. Signing it needs a *Developer ID Installer* certificate.
+- An installer package (`scripts/build-pkg.sh`, wired into `build-release.sh`). The
+  system Installer already runs as root with the right to write `/etc/pam.d`, so a single
+  password replaces the two approvals — and it puts the app in Applications itself.
+  Enabling `sudo` is an optional, pre-selected choice in the installer. It is signed with
+  a *Developer ID Installer* identity, which macOS requires for packages and which is
+  distinct from the Application identity that signs the app; `BUILD_PKG=0` skips it.
 - Offering to move the app to Applications when launched from elsewhere, instead of only
   explaining the problem.
 - Sensitivity as three named levels, the raw cosine value kept under *Advanced*.

@@ -151,12 +151,12 @@ keychain profile named `faceid-notary`:
 ./scripts/build-release.sh
 ```
 
-**Installer package.** `scripts/build-pkg.sh` builds a `.pkg` instead of a disk image.
-The system Installer already runs as root with the right to write `/etc/pam.d`, so a
-single password replaces both permissions above, and it places the app in Applications
-itself. Enabling `sudo` is an optional, pre-selected choice in the installer. Shipping it
-requires a *Developer ID Installer* certificate — distinct from the Application one that
-signs the app.
+`build-release.sh` also produces `Mugshot.pkg`. The system Installer already runs as root
+with the right to write `/etc/pam.d`, so a single password replaces both permissions
+above, and it places the app in Applications itself; enabling `sudo` is an optional,
+pre-selected choice in the installer. It needs a *Developer ID Installer* identity —
+macOS requires one for packages, and it is a different certificate from the Application
+one that signs the app. `BUILD_PKG=0 ./scripts/build-release.sh` skips it.
 
 </details>
 
