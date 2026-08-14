@@ -37,16 +37,18 @@ if ! iconutil -c icns "$ICONSET" -o "$HERE/assets/Mugshot.icns"; then
 fi
 
 echo "══ 2/6  Moteur Python autonome (PyInstaller) ══"
-rm -rf packaging/dist packaging/build packaging/*.spec
-"$HERE/.venv/bin/pyinstaller" --onedir --name faceid --noconfirm --clean --paths . \
-  --distpath packaging/dist --workpath packaging/build --specpath packaging \
-  packaging/faceid_entry.py >/dev/null 2>&1
+# Utilise packaging/faceid.spec (exclusions + strip). L'ancienne invocation le
+# régénérait à chaque build, donc ses réglages n'étaient jamais appliqués.
+rm -rf packaging/dist packaging/build
+"$HERE/.venv/bin/pyinstaller" --noconfirm --clean \
+  --distpath packaging/dist --workpath packaging/build \
+  packaging/faceid.spec >/dev/null 2>&1
 
 echo "══ 3/6  Compilation de l'app Swift ══"
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$RES"
 swiftc -O -swift-version 5 -target "$MUGSHOT_SWIFT_TARGET" -o "$APP/Contents/MacOS/Mugshot" \
-  menubar/Branding.swift menubar/Onboarding.swift menubar/SettingsView.swift \
+  menubar/Branding.swift menubar/Onboarding.swift menubar/SettingsView.swift menubar/SetupFlow.swift menubar/SetupSheet.swift menubar/Uninstaller.swift \
   menubar/HelperManager.swift helpertool/HelperProtocol.swift menubar/FaceIDApp.swift \
   -framework AppKit -framework SwiftUI -framework AVFoundation -framework ServiceManagement -framework Security \
   -F "$HERE/vendor/sparkle" -framework Sparkle \
@@ -93,11 +95,19 @@ cp -R "$HERE/packaging/dist/faceid" "$RES/faceid"                 # moteur Pytho
 mkdir -p "$RES/helpers" "$RES/assets" "$RES/models" "$RES/pam" "$RES/scripts"
 cp "$HERE/helpers/touchid-helper" "$HERE/helpers/auth-modal" "$HERE/helpers/faceid-hud" "$HERE/helpers/camera-list" "$RES/helpers/"
 cp "$HERE/assets/faceid-icon.png" "$RES/assets/"
-cp "$HERE/assets/FaceID.icns" "$RES/assets/faceid-icon.icns"
+# Icône du dialogue de repli osascript. Elle venait de assets/FaceID.icns, reliquat de
+# l'ancien nom du projet ; Mugshot.icns est régénérée à chaque build depuis la même
+# source (appicon-1024.png).
+cp "$HERE/assets/Mugshot.icns" "$RES/assets/faceid-icon.icns"
 cp "$MODELS/"*.onnx "$RES/models/"
 cp "$HERE/pam/pam_faceid.so" "$RES/pam/"
 cp "$HERE/scripts/pam-install-root.sh" "$HERE/scripts/pam-uninstall-root.sh" "$RES/scripts/"
+# diagnose.sh répond à « pourquoi sudo ne me demande pas mon visage ? ». Il n'était pas
+# embarqué : il fallait cloner le dépôt pour l'obtenir.
+cp "$HERE/scripts/diagnose.sh" "$RES/scripts/"
 cp -R "$HERE"/i18n/*.lproj "$RES/"
+mkdir -p "$RES/i18n"
+cp "$HERE/i18n/engine.json" "$RES/i18n/"      # invites du moteur, hors bundle Swift
 
 echo "══ 6/6  Signature ad-hoc (test local) ══"
 bash "$HERE/scripts/check-macos-compat.sh" "$APP"

@@ -24,9 +24,9 @@ recognition fully on your Mac.
 You type `sudo`, the camera recognizes you, and it unlocks. No password to type.
 
 It started as a weekend hack and turned into a small but complete app: a guided
-enrollment, a settings window, and a choice on every prompt between Face ID, Touch ID,
-and your password. Everything is bundled into a single signed app, and nothing ever
-leaves your Mac.
+enrollment, a single window that tells you whether the whole thing works, and a
+`sudo` prompt that scans your face instead of waiting for your password.
+Everything is bundled into one signed app, and nothing ever leaves your Mac.
 
 > [!IMPORTANT]
 > This is a fun project, not a security product. A 2D webcam can be tricked by a photo,
@@ -44,30 +44,30 @@ leaves your Mac.
 Open the downloaded `Mugshot.dmg` and drag **Mugshot** into your **Applications** folder.
 The app is signed and notarized by Apple, so it opens without any security warning.
 
-### 2. Set up your face
+### 2. Register your face
 
-Launch **Mugshot** from Applications. A small face icon appears in your menu bar. Click
-it and choose **Set Up My Face**, then follow the enrollment (allow the camera when
-macOS asks). It takes a few seconds.
+Launch **Mugshot** from Applications. Its window opens, and a small face icon appears in
+your menu bar. Register your face, allowing the camera when macOS asks. It takes a few
+seconds.
 
 <div align="center"><img src="assets/onboarding.png" width="760" alt="Guided enrollment" /></div>
 
-### 3. Turn on Face ID for sudo
+### 3. Turn it on for sudo
 
-Open **Settings** from the menu and switch on **Enable Face ID for sudo**. Recent macOS
-versions lock down changes to the `sudo` configuration, so Mugshot uses a small signed
-helper and walks you through two one-time approvals:
+The window tells you what is still missing and puts the button that fixes it right next
+to the sentence. Click **Enable**.
 
-1. **Allow the helper to run.** macOS asks you to approve it in **Settings › General ›
-   Login Items**. Turn it on.
-2. **Grant Full Disk Access.** macOS keeps the `sudo` PAM file behind Full Disk Access,
-   so the helper needs it to write that one file. Mugshot opens the right pane for you;
-   enable **MugshotHelper** in the list. It is only used to set up `sudo`, and nothing
-   ever leaves your Mac.
+macOS requires two one-time approvals before any app may touch the `sudo` configuration.
+Both are listed up front, and each one ticks itself off the moment you grant it — you
+never have to come back and start over:
 
-Flip the toggle on again and you are set. `sudo` always keeps your password as a fallback.
+1. **Allow Mugshot's helper**, in Settings › General › Login Items.
+2. **Grant it Full Disk Access.** macOS keeps the `sudo` PAM file behind this permission,
+   so the helper needs it to write that single file. It is used for nothing else.
 
-<div align="center"><img src="assets/settings.png" width="760" alt="Settings window" /></div>
+Mugshot then writes the rule. Your password always stays as a fallback.
+
+<div align="center"><img src="assets/settings.png" width="760" alt="The Mugshot window" /></div>
 
 ### 4. Use it
 
@@ -77,8 +77,12 @@ Run any `sudo` command in a terminal:
 sudo -k && sudo true
 ```
 
-The choice panel appears, the camera scans your face, and `sudo` unlocks. If the match
-fails for any reason, you simply get the normal password prompt.
+A capsule appears at the top of the screen and the camera scans your face. If it
+recognizes you, `sudo` unlocks. If it does not — or if you **click the capsule** to skip
+the scan — you get the normal password prompt.
+
+Prefer to be asked each time? Turn on **Choice panel** in the window to get a Face ID /
+fingerprint / password panel before every scan.
 
 <div align="center"><img src="assets/modal.png" width="620" alt="Face ID choice panel" /></div>
 
@@ -94,6 +98,11 @@ that runs in your login session and owns the camera. The daemon finds your face 
 [YuNet](https://github.com/opencv/opencv_zoo), turns it into an embedding with
 [SFace](https://github.com/opencv/opencv_zoo), and compares it to the face you enrolled.
 The PAM rule is `sufficient`, so a failed match falls through to your password.
+
+The daemon is a child process of Mugshot, and that is deliberate: launched by `launchd`
+instead, macOS would attribute the camera request to the engine binary rather than to the
+app, and deny it without even showing a prompt. The cost is that quitting Mugshot stops
+face unlock — so it says so before it quits.
 
 ## Security
 
@@ -111,7 +120,7 @@ A few things worth being clear about:
 <details>
 <summary>For developers</summary>
 
-You need macOS on Apple Silicon, the Xcode Command Line Tools
+You need macOS 14+ on Apple Silicon, the Xcode Command Line Tools
 (`xcode-select --install`) and Python 3.12 (`brew install python@3.12`).
 
 ```bash
@@ -121,14 +130,33 @@ cd macos-faceid
 ```
 
 `install.sh` sets up a virtual environment, downloads the models, builds the native
-helpers, and installs a development build of the app.
+helpers, and installs a development build into `/Applications`.
 
-To produce the signed and notarized DMG you need a *Developer ID Application*
-certificate and a `notarytool` keychain profile named `faceid-notary`:
+**Tests.** `python -m faceid.selftest` checks the recognition pipeline;
+`python tests/test_engine.py` covers the daemon's behaviour (warm-up, cancellation,
+cumulative enrollment, socket protocol) without needing a camera;
+`scripts/check-i18n.sh` verifies no translation key is missing or defined twice.
+`scripts/diagnose.sh` reports which link of the chain is broken on a real install.
+
+**Self-contained bundle**, no dependency on the checkout or its virtualenv:
+
+```bash
+./scripts/build-standalone.sh
+```
+
+**Signed release.** Needs a *Developer ID Application* certificate and a `notarytool`
+keychain profile named `faceid-notary`:
 
 ```bash
 ./scripts/build-release.sh
 ```
+
+`build-release.sh` also produces `Mugshot.pkg`. The system Installer already runs as root
+with the right to write `/etc/pam.d`, so a single password replaces both permissions
+above, and it places the app in Applications itself; enabling `sudo` is an optional,
+pre-selected choice in the installer. It needs a *Developer ID Installer* identity —
+macOS requires one for packages, and it is a different certificate from the Application
+one that signs the app. `BUILD_PKG=0 ./scripts/build-release.sh` skips it.
 
 </details>
 
@@ -145,7 +173,16 @@ for terminal convenience and keep Touch ID or your password as your real securit
 <summary><b>What happens if it does not recognize me?</b></summary>
 
 You get the normal password prompt, exactly like before. Nothing is lost. If it misses
-you often, re-enroll in better lighting, or lower the sensitivity in Settings.
+you often, add an appearance in the light you usually work in, or move sensitivity to
+**Lenient**.
+</details>
+
+<details>
+<summary><b>Can I add a second look — glasses, a beard?</b></summary>
+
+Yes. In the window, under *Your face*, click **Add an appearance…**. It adds to your
+enrolled face rather than replacing it, the way Face ID's alternate appearance does. Do
+it in the light you usually work in.
 </details>
 
 <details>
@@ -173,8 +210,9 @@ Apple Silicon Macs on macOS 14 or later, with any built-in or external webcam.
 <details>
 <summary><b>Can I still use Touch ID or my password?</b></summary>
 
-Yes. Every prompt shows a panel with Face ID, Touch ID (Fingerprint), and Password. Pick
-whichever you want. You can also hide the panel in Settings to go straight to Face ID.
+Yes. Click the capsule during a scan to go straight to the password prompt. Turn on
+**Choice panel** in the window to be offered Face ID, Touch ID and password before every
+scan instead.
 </details>
 
 <details>
@@ -187,10 +225,24 @@ the developer forums. For hands-free unlock, use an Apple Watch. The full write-
 </details>
 
 <details>
+<summary><b>Why does sudo still ask for my password?</b></summary>
+
+Because the PAM rule is `sufficient`, every failure degrades silently to the password
+prompt — which makes the cause invisible. Open Mugshot: the top of the window names the
+first thing that is missing. If it says *Ready* and `sudo` still asks, click **Copy
+diagnostics** and read what it reports, or run `scripts/diagnose.sh` from a checkout.
+</details>
+
+<details>
 <summary><b>How do I uninstall it?</b></summary>
 
-Open Settings, turn off Face ID for sudo, quit the app, and move `Mugshot.app` to the
-Trash. To delete your enrolled face, run `rm -rf ~/Library/Application\ Support/faceid`.
+Open Mugshot and click **Uninstall Mugshot…** at the bottom of the window. It removes the
+`sudo` rule and the PAM module, restores the system Touch ID rule, unregisters the helper
+and the login item, optionally deletes your enrolled face, and then offers to move the app
+to the Trash.
+
+Dragging the app to the Trash on its own is **not** enough: it leaves the PAM module and
+the `sudo` rule behind, and system Touch ID for `sudo` stays switched off.
 </details>
 
 ## Contributing

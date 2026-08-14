@@ -155,6 +155,11 @@ final class HelperManager {
         call({ $0.disableSudo(withReply: $1) }, done)
     }
 
+    /// Le helper a-t-il le droit d'écrire dans /etc/pam.d ? Ne modifie rien.
+    func checkAccess(_ done: @escaping (Bool, String) -> Void) {
+        call({ $0.checkAccess(withReply: $1) }, done)
+    }
+
     /// Teste uniquement le canal XPC; ne modifie pas la configuration PAM.
     func probe(_ done: @escaping (Bool, String) -> Void) {
         let c = newConnection()

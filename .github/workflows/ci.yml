@@ -44,6 +44,12 @@ jobs:
       - name: Recognition self-test
         run: ./.venv/bin/python -m faceid.selftest
 
+      - name: Engine behaviour tests
+        run: ./.venv/bin/python tests/test_engine.py
+
+      - name: Translations are complete
+        run: bash scripts/check-i18n.sh
+
       - name: Build native helpers
         run: bash scripts/build-helpers.sh
 
@@ -57,7 +63,9 @@ jobs:
         run: |
           swiftc -O -swift-version 5 -target "$MUGSHOT_SWIFT_TARGET" -o /tmp/Mugshot \
             menubar/Branding.swift menubar/Onboarding.swift \
-            menubar/SettingsView.swift menubar/HelperManager.swift \
+            menubar/SettingsView.swift menubar/SetupFlow.swift \
+            menubar/SetupSheet.swift menubar/Uninstaller.swift \
+            menubar/HelperManager.swift \
             helpertool/HelperProtocol.swift menubar/FaceIDApp.swift \
             -framework AppKit -framework SwiftUI \
             -framework AVFoundation -framework ServiceManagement -framework Security \
@@ -126,6 +134,16 @@ jobs:
 
       - name: Reported failure is reproduced and repaired
         run: bash scripts/check-pam-repair.sh dist/Mugshot.app
+
+      # Le paquet est le chemin d'installation à une seule autorisation. On vérifie
+      # qu'il se construit et que l'Installeur accepte sa distribution, sans l'installer.
+      - name: Installer package builds
+        run: |
+          bash scripts/build-pkg.sh dist/Mugshot.app dist/Mugshot.pkg
+          installer -pkg dist/Mugshot.pkg -target / -showChoiceChangesXML >/dev/null
+          pkgutil --expand dist/Mugshot.pkg /tmp/pkg-check
+          test -f /tmp/pkg-check/sudo.pkg/Scripts/postinstall
+          grep -q 'Applications/Mugshot.app' <(lsbom -p f /tmp/pkg-check/app.pkg/Bom)
 
       - name: Clean up
         if: always()

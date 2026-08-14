@@ -1,4 +1,17 @@
-"""Compose les fenêtres de l'app sur un fond façon macOS (dégradé + ombre)."""
+"""Compose une fenêtre de l'app sur un fond façon macOS (dégradé + ombre).
+
+    python scripts/make_shots.py <capture.png> <sortie.png> [hauteur]
+
+La capture d'entrée est la fenêtre seule. Pour l'obtenir sans le bureau ni les fenêtres
+voisines, passer par son identifiant plutôt que par sa position :
+
+    swiftc -O -o /tmp/window-id scripts/window-id.swift -framework CoreGraphics
+    /tmp/window-id Mugshot
+    screencapture -o -l<id> /tmp/win.png
+
+Sans argument, régénère les captures du dépôt depuis /tmp (comportement d'origine).
+"""
+import sys
 import cv2
 import numpy as np
 from pathlib import Path
@@ -35,6 +48,8 @@ def rounded_alpha(win, r):
 
 def compose(win_path, out_path, target_h=880, r=30):
     win = cv2.imread(str(win_path))
+    if win is None:
+        raise SystemExit(f"capture illisible : {win_path}")
     h, w = win.shape[:2]
     s = target_h / h
     win = cv2.resize(win, (int(w * s), target_h), interpolation=cv2.INTER_AREA)
@@ -63,5 +78,9 @@ def compose(win_path, out_path, target_h=880, r=30):
     print("écrit", out_path, out.shape)
 
 
-compose("/tmp/onb-en-check.png", ROOT / "assets" / "onboarding.png", target_h=980)
-compose("/tmp/panel-en.png", ROOT / "assets" / "modal.png", target_h=820)
+if len(sys.argv) >= 3:
+    compose(sys.argv[1], sys.argv[2],
+            target_h=int(sys.argv[3]) if len(sys.argv) > 3 else 880)
+else:
+    compose("/tmp/onb-en-check.png", ROOT / "assets" / "onboarding.png", target_h=980)
+    compose("/tmp/panel-en.png", ROOT / "assets" / "modal.png", target_h=820)

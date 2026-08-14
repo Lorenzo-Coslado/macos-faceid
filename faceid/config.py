@@ -1,4 +1,5 @@
 """Chemins et paramètres partagés par tous les composants."""
+import json
 import os
 import subprocess
 from pathlib import Path
@@ -20,15 +21,71 @@ TOUCHID_HELPER = HELPERS_DIR / "touchid-helper"
 AUTH_MODAL = HELPERS_DIR / "auth-modal"    # panneau natif AppKit
 FACEID_HUD = HELPERS_DIR / "faceid-hud"    # capsule Dynamic Island
 
+def _flag(name, default):
+    """Drapeau on/off depuis l'environnement.
+
+    `os.environ.get(name, default)` ne suffit pas : une variable présente mais vide
+    (`FACEID_MODAL=`) renvoie "", qui n'est pas "0" et passait donc pour « activé ».
+    """
+    return (os.environ.get(name) or default) != "0"
+
+
 # Capsule animée pendant le scan Face ID (scan -> checkmark). FACEID_HUD=0 désactive.
-HUD_ENABLED = os.environ.get("FACEID_HUD", "1") != "0"
+HUD_ENABLED = _flag("FACEID_HUD", "1")
 
 # Modal de choix (Face ID / Empreinte / Mot de passe) avant l'authentification.
-# Mettre FACEID_MODAL=0 pour aller directement au Face ID (ancien comportement).
-MODAL_ENABLED = os.environ.get("FACEID_MODAL", "1") != "0"
+#
+# Désactivé par défaut : l'app existe pour supprimer une friction (taper un mot de passe)
+# et le panneau en rajoutait une (cliquer un bouton) à chaque `sudo`. On lance donc
+# directement le scan ; la capsule HUD porte l'échappatoire (un clic dessus annule et
+# rend la main au mot de passe). FACEID_MODAL=1 rétablit le panneau.
+MODAL_ENABLED = _flag("FACEID_MODAL", "0")
 
 # Icône du modal (glyphe Face ID vert, générée par scripts/make_icon.py).
 MODAL_ICON = ASSETS_DIR / "faceid-icon.icns"
+
+# ---- traductions du moteur ----
+# Le moteur tourne hors bundle : pas de NSBundle, donc pas de .lproj. Ses invites
+# viennent d'un JSON généré par scripts/make_i18n.py depuis la même table que l'app.
+# FACEID_LANG est posé par l'app (localisation retenue par macOS) ; sans lui, on
+# interroge les préférences système, et en dernier ressort on parle anglais.
+I18N_PATH = _dir("FACEID_I18N", PROJECT_ROOT / "i18n") / "engine.json"
+
+
+def _preferred_lang():
+    forced = os.environ.get("FACEID_LANG")
+    if forced:
+        return forced
+    try:
+        out = subprocess.run(["defaults", "read", "-g", "AppleLanguages"],
+                             capture_output=True, text=True, timeout=3).stdout
+    except (OSError, subprocess.SubprocessError):
+        return "en"
+    for token in out.replace('"', " ").replace(",", " ").split():
+        if token[0].isalpha():
+            return token
+    return "en"
+
+
+def _load_translations():
+    try:
+        table = json.loads(I18N_PATH.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+    lang = _preferred_lang()
+    # "fr-CA" doit retomber sur "fr", "zh-Hans-CN" sur "zh-Hans".
+    for candidate in (lang, lang.rsplit("-", 1)[0], lang.split("-")[0], "en"):
+        if candidate in table:
+            return table[candidate]
+    return {}
+
+
+_TR = _load_translations()
+
+
+def t(key, fallback=""):
+    """Texte localisé pour le moteur. `fallback` si la clé manque."""
+    return _TR.get(key) or fallback
 
 # Données runtime (embeddings, socket, logs) : toujours propres à l'utilisateur.
 APP_DIR = Path(os.path.expanduser("~/Library/Application Support/faceid"))
@@ -46,8 +103,16 @@ SFACE_PATH = MODELS_DIR / "face_recognition_sface_2021dec.onnx"
 # Plus haut = plus strict (moins de faux positifs, plus de faux négatifs).
 COSINE_THRESHOLD = float(os.environ.get("FACEID_THRESHOLD", "0.36"))
 
-# Frames de warmup à jeter quand la caméra vient de s'ouvrir (auto-exposition).
+# Plafond de frames jetées quand la caméra vient de s'ouvrir (auto-exposition). Le
+# warmup s'arrête avant si la luminosité s'est stabilisée — cf. _adaptive_warmup.
 CAMERA_WARMUP_FRAMES = int(os.environ.get("FACEID_WARMUP", "8"))
+# Écart de luminosité moyenne en dessous duquel on considère l'exposition stabilisée.
+WARMUP_STABLE_DELTA = float(os.environ.get("FACEID_WARMUP_DELTA", "1.5"))
+
+# Résolution demandée à la caméra. Le visage doit faire au moins MIN_FACE_SIZE pixels ;
+# au-delà de 640×480 on paie de la latence pour une précision qu'on n'exploite pas.
+CAPTURE_WIDTH = int(os.environ.get("FACEID_CAPTURE_WIDTH", "640"))
+CAPTURE_HEIGHT = int(os.environ.get("FACEID_CAPTURE_HEIGHT", "480"))
 
 # Confiance minimale du DÉTECTEUR de visage (YuNet). La sécurité repose sur le
 # seuil de reconnaissance (cosinus), pas ici : une fausse détection ne matchera
