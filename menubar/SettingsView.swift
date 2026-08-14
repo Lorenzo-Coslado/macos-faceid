@@ -35,13 +35,17 @@ struct SettingsView: View {
                     faceSection
                     sudoSection
                     behaviourSection
-                    footer
                     if !note.isEmpty {
                         Text(note).font(.system(size: 11.5)).foregroundStyle(.secondary)
                     }
                 }
                 .padding(24)
             }
+            // Hors du défilement : ce sont des commandes de la fenêtre, pas du contenu.
+            // Dans le ScrollView, « Désinstaller » restait sous la ligne de flottaison —
+            // invisible à celui qui cherche justement comment s'en débarrasser.
+            Divider()
+            footer
         }
         .frame(width: 460, height: 620)
         .background(VisualEffect().ignoresSafeArea())
@@ -267,6 +271,8 @@ struct SettingsView: View {
             Button(L("uninstall.action")) { confirmUninstall() }
                 .buttonStyle(.link).tint(.red)
         }
+        .font(.system(size: 11.5))
+        .padding(.horizontal, 24).padding(.vertical, 12)
     }
 
     private func section<Content: View>(_ title: String,
