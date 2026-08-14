@@ -15,9 +15,12 @@ final class EnrollController: ObservableObject {
     /// Ajouter une apparence plutôt que remplacer l'enrôlement.
     @Published var appending = false
 
-    func reset(appending: Bool = false) {
+    /// `appending: nil` conserve le mode en cours. C'est ce que veut « Réessayer »
+    /// après un échec : repartir en mode remplacement écraserait le visage déjà
+    /// enregistré alors que l'utilisateur voulait seulement lui ajouter une apparence.
+    func reset(appending: Bool? = nil) {
         phase = .intro; count = 0; message = ""
-        self.appending = appending
+        if let appending { self.appending = appending }
     }
 
     func begin() {
