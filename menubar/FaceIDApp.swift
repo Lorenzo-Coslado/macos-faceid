@@ -123,9 +123,14 @@ final class AppController: NSObject, NSApplicationDelegate {
                 if Status.enrolled { self.openSettings() } else { self.openOnboarding() }
             }
         }
-        // Flag interne pour les captures d'écran de la doc.
+        // Drapeaux internes pour régénérer les captures de la documentation. Sans eux,
+        // l'écran d'enrôlement ne s'ouvre qu'en l'absence de visage enregistré, donc
+        // impossible à photographier sur une machine où l'app est déjà configurée.
         if CommandLine.arguments.contains("--open-settings") {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { self.openSettings() }
+        }
+        if CommandLine.arguments.contains("--open-enrollment") {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { self.openOnboarding() }
         }
     }
 

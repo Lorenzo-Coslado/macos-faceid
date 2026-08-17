@@ -21,19 +21,42 @@ W, H = 2400, 1500
 
 
 def wallpaper():
-    # dégradé diagonal bleu-nuit -> violet profond, léger halo (style macOS sombre)
-    top = np.array([88, 60, 38], np.float32)      # BGR ~ #263c58
-    bot = np.array([40, 24, 30], np.float32)      # ~ #1e1828
-    g = np.zeros((H, W, 3), np.float32)
-    for y in range(H):
-        t = y / (H - 1)
-        g[y, :] = top * (1 - t) + bot * t
-    # halo radial doux vers le centre-haut
-    yy, xx = np.mgrid[0:H, 0:W]
-    d = np.sqrt((xx - W * 0.5) ** 2 + (yy - H * 0.32) ** 2)
-    halo = np.clip(1 - d / (W * 0.7), 0, 1)[..., None] ** 2
-    g += halo * np.array([70, 45, 30], np.float32)
-    return np.clip(g, 0, 255).astype(np.uint8)
+    """Fond sombre à deux halos colorés, façon fond d'écran macOS.
+
+    L'ancien dégradé linéaire aplatissait l'image : la fenêtre, elle-même sombre, s'y
+    fondait. Deux sources lumineuses décentrées — une verte reprenant l'accent de l'app,
+    une indigo en contrepoint — creusent la profondeur et détachent la fenêtre, sans
+    attirer l'œil puisqu'elles restent loin du centre où elle se pose.
+    """
+    yy, xx = np.mgrid[0:H, 0:W].astype(np.float32)
+
+    # Base : bleu nuit en haut, prune sombre en bas. Assez présent pour porter la
+    # couleur, assez sombre pour qu'une fenêtre sombre s'en détache.
+    t = (yy / (H - 1))[..., None]
+    canvas = (np.array([74, 46, 30], np.float32) * (1 - t)
+              + np.array([62, 28, 44], np.float32) * t)
+
+    def glow(cx, cy, radius, colour, strength):
+        """Halo radial à décroissance douce (cx, cy en fraction de l'image)."""
+        d = np.sqrt((xx - W * cx) ** 2 + (yy - H * cy) ** 2) / (W * radius)
+        falloff = np.clip(1.0 - d, 0.0, 1.0) ** 2.2
+        return falloff[..., None] * np.array(colour, np.float32) * strength
+
+    # BGR. Le vert reprend Brand.green (#86E88A), l'indigo lui répond en diagonale.
+    canvas += glow(0.14, 0.12, 0.66, (86, 190, 92), 0.85)
+    canvas += glow(0.88, 0.90, 0.62, (196, 92, 120), 0.70)
+    # Voile central : évite que le milieu, là où se pose la fenêtre, vire au gris mort.
+    canvas += glow(0.50, 0.42, 0.95, (96, 62, 58), 0.45)
+
+    # Vignettage : assombrit les bords, ramène le regard vers la fenêtre.
+    d = np.sqrt((xx - W / 2) ** 2 + (yy - H / 2) ** 2) / (W * 0.72)
+    canvas *= np.clip(1.10 - d * 0.38, 0.55, 1.0)[..., None]
+
+    # Grain fin : sans lui, un dégradé aussi sombre montre des bandes de quantification.
+    rng = np.random.default_rng(7)
+    canvas += rng.normal(0.0, 1.6, (H, W, 1)).astype(np.float32)
+
+    return np.clip(canvas, 0, 255).astype(np.uint8)
 
 
 def rounded_alpha(win, r):
@@ -47,14 +70,26 @@ def rounded_alpha(win, r):
 
 
 def compose(win_path, out_path, target_h=880, r=30):
-    win = cv2.imread(str(win_path))
+    # IMREAD_UNCHANGED : une capture de fenêtre par identifiant contient un canal alpha
+    # qui décrit ses vrais coins arrondis et sa transparence. L'ignorer et arrondir
+    # nous-mêmes laissait des coins noirs sur les fenêtres sans bord, comme le panneau
+    # de choix, dont le rayon ne correspond pas à celui qu'on devinait.
+    win = cv2.imread(str(win_path), cv2.IMREAD_UNCHANGED)
     if win is None:
         raise SystemExit(f"capture illisible : {win_path}")
+    captured_alpha = win[:, :, 3] if win.shape[2] == 4 else None
+    win = win[:, :, :3]
+
     h, w = win.shape[:2]
     s = target_h / h
-    win = cv2.resize(win, (int(w * s), target_h), interpolation=cv2.INTER_AREA)
+    size = (int(w * s), target_h)
+    win = cv2.resize(win, size, interpolation=cv2.INTER_AREA)
     h, w = win.shape[:2]
-    alpha = rounded_alpha(win, r).astype(np.float32) / 255.0
+    if captured_alpha is not None:
+        alpha = cv2.resize(captured_alpha, size,
+                           interpolation=cv2.INTER_AREA).astype(np.float32) / 255.0
+    else:
+        alpha = rounded_alpha(win, r).astype(np.float32) / 255.0
 
     canvas = wallpaper().astype(np.float32)
     ox, oy = (W - w) // 2, (H - h) // 2

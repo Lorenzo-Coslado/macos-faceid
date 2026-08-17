@@ -37,12 +37,28 @@ Everything is bundled into one signed app, and nothing ever leaves your Mac.
 
 ### 1. Download the app
 
-<a href="https://github.com/Lorenzo-Coslado/macos-faceid/releases/latest/download/Mugshot.dmg">
+<a href="https://github.com/Lorenzo-Coslado/macos-faceid/releases/latest/download/Mugshot.pkg">
   <img src="assets/download-macos.png" width="300" alt="Download for macOS" />
 </a>
 
-Open the downloaded `Mugshot.dmg` and drag **Mugshot** into your **Applications** folder.
-The app is signed and notarized by Apple, so it opens without any security warning.
+Open `Mugshot.pkg` and follow the installer. It asks for your password **once** and does
+everything with it: places the app in Applications, and wires `sudo` to face unlock. You
+still register your face in step 2, but step 3 is already done for you.
+
+Wiring `sudo` means writing a file macOS keeps behind Full Disk Access. The system
+installer already runs with that right; an app does not, which is why installing by hand
+costs two extra permissions. Turning on `sudo` is a checkbox in the installer, selected by
+default — clear it if you would rather decide later.
+
+<details>
+<summary>Prefer the disk image?</summary>
+
+[`Mugshot.dmg`](https://github.com/Lorenzo-Coslado/macos-faceid/releases/latest/download/Mugshot.dmg)
+works too: open it and drag **Mugshot** into your **Applications** folder. You will then
+grant the two approvals in step 2 yourself.
+</details>
+
+Both are signed and notarized by Apple, so they open without any security warning.
 
 ### 2. Register your face
 
@@ -54,8 +70,10 @@ seconds.
 
 ### 3. Turn it on for sudo
 
-The window tells you what is still missing and puts the button that fixes it right next
-to the sentence. Click **Enable**.
+*Already done if you used the installer package — the window will say **Ready**.*
+
+Otherwise, the window tells you what is still missing and puts the button that fixes it
+right next to the sentence. Click **Enable**.
 
 macOS requires two one-time approvals before any app may touch the `sudo` configuration.
 Both are listed up front, and each one ticks itself off the moment you grant it — you
