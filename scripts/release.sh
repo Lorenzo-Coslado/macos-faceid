@@ -20,6 +20,7 @@ BUILD="${2:?usage: release.sh <version> <build>   ex: release.sh 1.0.1 2}"
 REPO="Lorenzo-Coslado/macos-faceid"
 TAG="v$MARKETING"
 DMG="$HERE/dist/Mugshot.dmg"
+PKG="$HERE/dist/Mugshot.pkg"
 SPARKLE_BIN="$HERE/vendor/sparkle/bin"
 
 echo "▶︎ Release Mugshot $MARKETING (build $BUILD)"
@@ -39,11 +40,15 @@ cp "$DMG" "$STAGE/"
 cp "$STAGE/appcast.xml" "$HERE/appcast.xml"
 echo "✅ appcast.xml régénéré"
 
-# 3) Release GitHub avec le DMG
+# 3) Release GitHub avec le DMG et le paquet.
+#    Les deux : le DMG reste ce que Sparkle télécharge pour mettre à jour les apps
+#    installées, le paquet est le chemin d'installation à une seule autorisation.
+ASSETS=("$DMG")
+[ -f "$PKG" ] && ASSETS+=("$PKG")
 if gh release view "$TAG" --repo "$REPO" >/dev/null 2>&1; then
-  gh release upload "$TAG" "$DMG" --repo "$REPO" --clobber
+  gh release upload "$TAG" "${ASSETS[@]}" --repo "$REPO" --clobber
 else
-  gh release create "$TAG" "$DMG" --repo "$REPO" \
+  gh release create "$TAG" "${ASSETS[@]}" --repo "$REPO" \
     --title "Mugshot $MARKETING" --generate-notes
 fi
 
