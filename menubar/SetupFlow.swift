@@ -204,25 +204,43 @@ final class SetupFlow: ObservableObject {
         poll?.invalidate()
         let deadline = Date().addingTimeInterval(budget)
         pollSettled = false
+        // Une référence forte capturée explicitement, et un seul niveau de closure.
+        // `guard let self` imbriqué dans deux `Task` compile sur macOS 15 et 26 mais
+        // pas sur macOS 14, qui y voit encore une capture mutable. La minuterie est
+        // invalidée dès qu'on conclut, donc retenir `self` ne crée pas de cycle.
         poll = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in
+            guard let flow = self else { return }
             Task { @MainActor in
-                guard let self, self.running, !self.pollSettled else { return }
-                if Date() >= deadline {
-                    self.pollSettled = true
-                    self.poll?.invalidate(); self.poll = nil
-                    onTimeout()
-                    return
-                }
-                probe {
-                    Task { @MainActor in
-                        guard !self.pollSettled else { return }
-                        self.pollSettled = true
-                        self.poll?.invalidate(); self.poll = nil
-                        onSuccess()
-                    }
-                }
+                flow.tick(deadline: deadline, probe: probe,
+                          onTimeout: onTimeout, onSuccess: onSuccess)
             }
         }
+    }
+
+    /// Un battement du sondage. Extrait en méthode plutôt que laissé en closure :
+    /// `self` y est le receveur normal, pas une valeur capturée, ce qui supprime la
+    /// question de la capture concurrente au lieu de la contourner.
+    private func tick(deadline: Date,
+                      probe: @escaping (@escaping () -> Void) -> Void,
+                      onTimeout: @escaping () -> Void,
+                      onSuccess: @escaping () -> Void) {
+        guard running, !pollSettled else { return }
+        if Date() >= deadline {
+            conclude(onTimeout)
+            return
+        }
+        probe { [weak self] in
+            Task { @MainActor in self?.conclude(onSuccess) }
+        }
+    }
+
+    /// Clôt le sondage en cours et exécute l'issue, une seule fois.
+    private func conclude(_ outcome: @escaping () -> Void) {
+        guard !pollSettled else { return }
+        pollSettled = true
+        poll?.invalidate()
+        poll = nil
+        outcome()
     }
 
     /// Rouvre le volet des Réglages système correspondant à l'étape en cours.
