@@ -19,18 +19,23 @@ enum Uninstaller {
     /// Séquence complète. `deleteData` efface aussi le visage enrôlé.
     /// La réponse arrive sur le thread principal.
     static func run(deleteData: Bool, done: @escaping (Outcome) -> Void) {
-        var outcome = Outcome()
-
         // 1. Défaire la configuration système. C'est la seule étape qui exige le daemon
         //    root, et la seule dont l'oubli abîme durablement la machine.
+        //
+        // `outcome` vit DANS la closure et non à l'extérieur : muter une variable
+        // capturée depuis une closure concurrente est refusé par le compilateur Swift
+        // de macOS 14. La closure n'étant appelée qu'une fois, rien n'est perdu.
         let finishSystemSide: (Bool, String) -> Void = { ok, msg in
+            var outcome = Outcome()
             if ok {
                 outcome.steps.append(L("uninstall.step.pam"))
             } else if Status.sudoActive {
                 // La règle est encore là : on s'arrête plutôt que de jeter l'app en
                 // laissant sudo pointer vers un module qu'on vient de supprimer.
                 outcome.failure = msg
-                DispatchQueue.main.async { done(outcome) }
+                // Liste de capture explicite : sans elle, la closure référence la
+                // variable et non sa valeur, ce que le compilateur de macOS 14 refuse.
+                DispatchQueue.main.async { [outcome] in done(outcome) }
                 return
             }
 
@@ -48,7 +53,7 @@ enum Uninstaller {
                 outcome.steps.append(L("uninstall.step.data"))
             }
 
-            DispatchQueue.main.async { done(outcome) }
+            DispatchQueue.main.async { [outcome] in done(outcome) }
         }
 
         if Status.sudoActive {

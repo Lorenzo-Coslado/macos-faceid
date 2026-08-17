@@ -135,17 +135,19 @@ final class SetupFlow: ObservableObject {
     /// et c'est justement ce qui permet à une autorisation TCC fraîche d'être prise en
     /// compte : le processus suivant démarre avec le nouveau droit.
     private func waitForAccess() {
-        var lastMessage = ""
+        // Propriété plutôt que variable locale, pour la même raison que `pollSettled`.
+        lastAccessMessage = ""
         startPolling(every: 2.0, giveUpAfter: Self.waitBudget) { [weak self] finish in
             HelperManager.shared.checkAccess { ok, msg in
-                lastMessage = msg
+                Task { @MainActor in self?.lastAccessMessage = msg }
                 if ok { finish() }
             }
-            _ = self
         } onTimeout: { [weak self] in
-            self?.states[.fullDisk] = .failed(lastMessage.isEmpty
-                                              ? L("setup.step.fda.waiting") : lastMessage)
-            self?.running = false
+            guard let self else { return }
+            self.states[.fullDisk] = .failed(self.lastAccessMessage.isEmpty
+                                             ? L("setup.step.fda.waiting")
+                                             : self.lastAccessMessage)
+            self.running = false
         } onSuccess: { [weak self] in
             self?.states[.fullDisk] = .done
             self?.advance()
@@ -180,6 +182,18 @@ final class SetupFlow: ObservableObject {
     /// fenêtre reste bloquée sur un indicateur d'activité sans rien expliquer.
     private static let waitBudget: TimeInterval = 180
 
+    /// Le sondage en cours a-t-il déjà conclu ? Propriété d'instance et non variable
+    /// locale : muter une variable capturée depuis des closures concurrentes est refusé
+    /// par le compilateur Swift de macOS 14. La classe étant isolée `@MainActor`, une
+    /// propriété est à la fois sûre et acceptée partout. Un seul sondage tourne à la
+    /// fois — `startPolling` invalide le précédent — donc un drapeau unique suffit.
+    private var pollSettled = false
+
+    /// Dernier message rendu par le helper, conservé pour l'afficher si l'attente
+    /// expire. Même contrainte que `pollSettled` : une variable locale mutée depuis
+    /// une closure concurrente ne compile pas sur macOS 14.
+    private var lastAccessMessage = ""
+
     /// Sondage périodique borné dans le temps. `probe` reçoit une closure à appeler
     /// quand la condition est remplie ; elle peut être invoquée de façon asynchrone.
     private func startPolling(every interval: TimeInterval,
@@ -189,20 +203,20 @@ final class SetupFlow: ObservableObject {
                               onSuccess: @escaping () -> Void) {
         poll?.invalidate()
         let deadline = Date().addingTimeInterval(budget)
-        var settled = false
+        pollSettled = false
         poll = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in
             Task { @MainActor in
-                guard let self, self.running, !settled else { return }
+                guard let self, self.running, !self.pollSettled else { return }
                 if Date() >= deadline {
-                    settled = true
+                    self.pollSettled = true
                     self.poll?.invalidate(); self.poll = nil
                     onTimeout()
                     return
                 }
                 probe {
                     Task { @MainActor in
-                        guard !settled else { return }
-                        settled = true
+                        guard !self.pollSettled else { return }
+                        self.pollSettled = true
                         self.poll?.invalidate(); self.poll = nil
                         onSuccess()
                     }
