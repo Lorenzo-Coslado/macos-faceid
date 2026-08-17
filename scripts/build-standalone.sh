@@ -40,9 +40,18 @@ echo "══ 2/6  Moteur Python autonome (PyInstaller) ══"
 # Utilise packaging/faceid.spec (exclusions + strip). L'ancienne invocation le
 # régénérait à chaque build, donc ses réglages n'étaient jamais appliqués.
 rm -rf packaging/dist packaging/build
-"$HERE/.venv/bin/pyinstaller" --noconfirm --clean \
-  --distpath packaging/dist --workpath packaging/build \
-  packaging/faceid.spec >/dev/null 2>&1
+# La sortie part dans un journal plutôt que dans /dev/null : elle est trop bavarde pour
+# le terminal, mais l'envoyer au néant rendait tout échec muet — sur CI, on ne voyait
+# qu'un « exit code 1 » sans la moindre cause.
+# Hors de --workpath : `--clean` vide ce répertoire et emporterait le journal avec lui.
+PYI_LOG="$HERE/packaging/pyinstaller.log"
+if ! "$HERE/.venv/bin/pyinstaller" --noconfirm --clean \
+      --distpath packaging/dist --workpath packaging/build \
+      packaging/faceid.spec > "$PYI_LOG" 2>&1; then
+  echo "❌ PyInstaller a échoué. Fin du journal ($PYI_LOG) :" >&2
+  tail -40 "$PYI_LOG" >&2
+  exit 1
+fi
 
 echo "══ 3/6  Compilation de l'app Swift ══"
 rm -rf "$APP"
