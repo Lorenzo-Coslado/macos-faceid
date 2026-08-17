@@ -1,4 +1,4 @@
-numpy>=1.26
+numpy>=2.5.2
 # headless, pas contrib : le moteur n'utilise que FaceDetectorYN, FaceRecognizerSF et
 # VideoCapture, tous dans le module principal. Les modules contrib et les backends
 # d'interface graphique pesaient une dizaine de mégaoctets pour rien.
