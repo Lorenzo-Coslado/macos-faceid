@@ -48,7 +48,9 @@ scripts/fix-camera-launchd.sh
 dist/
 packaging/dist/
 packaging/build/
-packaging/*.spec
+# packaging/faceid.spec n'est plus ignoré : il était régénéré puis jeté à chaque build,
+# c'est maintenant un fichier source que PyInstaller lit tel quel. L'ignorer le rendait
+# absent de tout clone neuf, et le build échouait sur « Spec file not found ».
 
 # Frames intermédiaires du GIF de démo (on garde assets/demo.gif)
 assets/demo_frames/
