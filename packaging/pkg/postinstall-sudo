@@ -9,12 +9,19 @@
 # On ne réécrit rien ici : on appelle le script déjà utilisé par le daemon privilégié,
 # qui sauvegarde /etc/pam.d/sudo, valide le résultat avant de l'installer et revient en
 # arrière si la forme du fichier surprend.
+#
+# Arguments passés par l'Installeur : $1 = paquet, $2 = emplacement d'installation,
+# $3 = volume cible, $4 = racine du système.
 set -euo pipefail
 
-APP="/Applications/Mugshot.app"
+VOLUME="${3:-/}"
+APP="${VOLUME%/}/Applications/Mugshot.app"
 INSTALLER="$APP/Contents/Resources/scripts/pam-install-root.sh"
 
-if [ ! -x "/bin/bash" ] || [ ! -f "$INSTALLER" ]; then
+# Le chemin était écrit en dur sur « / ». Une installation sur un autre volume, ou une
+# relocalisation de bundle, le laissait chercher au mauvais endroit et abandonner en
+# silence : l'app arrivait, sudo n'était pas branché, et rien ne le disait.
+if [ ! -f "$INSTALLER" ]; then
     echo "Mugshot: $INSTALLER introuvable; sudo laissé inchangé" >&2
     # Sortie 0 volontaire : l'app est installée et utilisable, seule l'intégration sudo
     # manque. Faire échouer le paquet entier pour ça serait disproportionné, et l'app

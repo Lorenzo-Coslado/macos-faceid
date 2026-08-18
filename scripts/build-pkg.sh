@@ -40,7 +40,25 @@ mkdir -p "$STAGE/Applications"
 # paquet sont normales : pkgbuild les génère pour chaque chemin, même depuis une racine
 # sans le moindre attribut étendu — c'est son encodage des métadonnées.)
 ditto --norsrc --noextattr --noqtn "$APP" "$STAGE/Applications/$(basename "$APP")"
+
+# Désactiver la RELOCALISATION, sinon l'installeur n'installe pas où on lui dit.
+#
+# macOS cherche, via Spotlight, un bundle portant déjà le même identifiant, et installe
+# À CET ENDROIT plutôt que dans /Applications. Sur une machine de développement, il
+# trouvait dist/Mugshot.app et y déversait le paquet :
+#
+#   PackageKit: Applications/Mugshot.app relocated to Users/…/dist/Mugshot.app
+#
+# L'utilisateur ne trouvait alors rien dans Applications, et le script postinstall,
+# qui cherche l'app à son emplacement normal, échouait dans la foulée. `relocatable=false`
+# sur le paquet ne suffit pas : c'est par bundle que ça se règle, via un component plist.
+COMPONENT="$COMPONENTS/component.plist"
+pkgbuild --analyze --root "$STAGE" "$COMPONENT" >/dev/null
+/usr/libexec/PlistBuddy -c "Set :0:BundleIsRelocatable false" "$COMPONENT" 2>/dev/null \
+  || /usr/libexec/PlistBuddy -c "Add :0:BundleIsRelocatable bool false" "$COMPONENT"
+
 pkgbuild --root "$STAGE" \
+         --component-plist "$COMPONENT" \
          --identifier com.lorenzo.Mugshot.app \
          --version "$VERSION" \
          --install-location / \
