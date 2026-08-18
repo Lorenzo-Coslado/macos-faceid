@@ -261,6 +261,15 @@ to the Trash.
 
 Dragging the app to the Trash on its own is **not** enough: it leaves the PAM module and
 the `sudo` rule behind, and system Touch ID for `sudo` stays switched off.
+
+If you installed with the package, macOS will ask you to approve Mugshot's helper the
+first time you uninstall — the installer wired `sudo` with its own privileges, so the app
+has never needed the helper until now. If that gets in your way, the rule can also be
+removed from a terminal:
+
+```bash
+sudo bash /Applications/Mugshot.app/Contents/Resources/scripts/pam-uninstall-root.sh
+```
 </details>
 
 ## Contributing

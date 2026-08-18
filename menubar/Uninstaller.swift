@@ -57,6 +57,27 @@ enum Uninstaller {
         }
 
         if Status.sudoActive {
+            // Le helper n'est pas forcément enregistré : installé par le paquet, `sudo`
+            // est branché sans que SMAppService n'ait jamais servi. L'appel XPC partait
+            // alors vers un service inexistant, échouait, et la désinstallation se
+            // terminait sur une ligne de texte gris que personne ne voit — de l'extérieur,
+            // le bouton ne faisait rien. On enregistre donc le helper à la demande.
+            if !HelperManager.shared.isEnabled {
+                switch HelperManager.shared.ensureRegistered() {
+                case .enabled:
+                    break
+                case .needsApproval:
+                    var outcome = Outcome()
+                    outcome.failure = L("uninstall.needs.helper")
+                    DispatchQueue.main.async { [outcome] in done(outcome) }
+                    return
+                case .failed(let message):
+                    var outcome = Outcome()
+                    outcome.failure = message
+                    DispatchQueue.main.async { [outcome] in done(outcome) }
+                    return
+                }
+            }
             HelperManager.shared.disableSudo(finishSystemSide)
         } else {
             // Rien à défaire côté système : on ne réveille pas le daemon root pour rien,

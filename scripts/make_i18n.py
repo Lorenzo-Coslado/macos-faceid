@@ -640,6 +640,70 @@ TR = {
         "ko": "sudo 규칙을 제거하지 못해 아무것도 삭제하지 않았습니다: %@",
         "ru": "Не удалось удалить правило sudo, поэтому ничего не удалено: %@",
     },
+    "uninstall.needs.helper": {
+        "en": "Mugshot's helper must be approved before the sudo rule can be removed. "
+              "macOS just opened Login Items — turn Mugshot on there, then try again.",
+        "fr": "L'assistant de Mugshot doit être autorisé avant de pouvoir retirer la règle "
+              "sudo. macOS vient d'ouvrir les Éléments d'ouverture — activez-y Mugshot, "
+              "puis réessayez.",
+        "es": "El asistente de Mugshot debe autorizarse antes de quitar la regla de sudo. "
+              "macOS abrió los Ítems de inicio: activa Mugshot ahí y vuelve a intentarlo.",
+        "de": "Mugshots Helfer muss freigegeben werden, bevor die sudo-Regel entfernt "
+              "werden kann. macOS hat die Anmeldeobjekte geöffnet — aktiviere Mugshot "
+              "dort und versuche es erneut.",
+        "it": "L'assistente di Mugshot va autorizzato prima di rimuovere la regola sudo. "
+              "macOS ha aperto gli Elementi login: attiva Mugshot e riprova.",
+        "pt-BR": "O auxiliar do Mugshot precisa ser autorizado antes de remover a regra do "
+                 "sudo. O macOS abriu os Itens de início: ative o Mugshot e tente de novo.",
+        "nl": "De helper van Mugshot moet worden goedgekeurd voordat de sudo-regel kan "
+              "worden verwijderd. macOS opende Inlogitems — schakel Mugshot daar in en "
+              "probeer opnieuw.",
+        "ja": "sudoルールを削除するには、Mugshotのヘルパーを許可する必要があります。"
+              "macOSがログイン項目を開いたので、Mugshotをオンにしてから再試行してください。",
+        "zh-Hans": "移除 sudo 规则前需要先允许 Mugshot 的辅助程序。macOS 已打开登录项——"
+                   "在那里开启 Mugshot，然后重试。",
+        "ko": "sudo 규칙을 제거하려면 먼저 Mugshot 도우미를 허용해야 합니다. macOS가 "
+              "로그인 항목을 열었습니다. 거기서 Mugshot을 켠 뒤 다시 시도하세요.",
+        "ru": "Помощник Mugshot должен быть разрешён, прежде чем можно удалить правило "
+              "sudo. macOS открыл Объекты входа — включите там Mugshot и повторите.",
+    },
+    "uninstall.failed.title": {
+        "en": "Could not remove the sudo rule", "fr": "Impossible de retirer la règle sudo",
+        "es": "No se pudo quitar la regla de sudo", "de": "sudo-Regel ließ sich nicht entfernen",
+        "it": "Impossibile rimuovere la regola sudo", "pt-BR": "Não foi possível remover a regra do sudo",
+        "nl": "Kon de sudo-regel niet verwijderen", "ja": "sudoルールを削除できませんでした",
+        "zh-Hans": "无法移除 sudo 规则", "ko": "sudo 규칙을 제거할 수 없습니다",
+        "ru": "Не удалось удалить правило sudo",
+    },
+    "uninstall.failed.manual": {
+        "en": "Nothing was deleted. You can remove the rule yourself from a terminal — "
+              "the command is on your clipboard if you choose Copy.",
+        "fr": "Rien n'a été supprimé. Vous pouvez retirer la règle vous-même depuis un "
+              "terminal — la commande est copiée si vous choisissez Copier.",
+        "es": "No se eliminó nada. Puedes quitar la regla desde un terminal: el comando se "
+              "copia si eliges Copiar.",
+        "de": "Es wurde nichts gelöscht. Du kannst die Regel selbst im Terminal entfernen — "
+              "der Befehl liegt in der Zwischenablage, wenn du Kopieren wählst.",
+        "it": "Non è stato eliminato nulla. Puoi rimuovere la regola dal Terminale: il "
+              "comando viene copiato se scegli Copia.",
+        "pt-BR": "Nada foi excluído. Você pode remover a regra pelo Terminal — o comando é "
+                 "copiado se escolher Copiar.",
+        "nl": "Er is niets verwijderd. Je kunt de regel zelf via Terminal verwijderen — het "
+              "commando staat op je klembord als je Kopiëren kiest.",
+        "ja": "何も削除していません。ターミナルから自分で削除できます。「コピー」を選ぶと"
+              "コマンドがクリップボードに入ります。",
+        "zh-Hans": "未删除任何内容。你可以在终端里自行移除规则——选择“拷贝”即可获得命令。",
+        "ko": "아무것도 삭제하지 않았습니다. 터미널에서 직접 규칙을 제거할 수 있습니다. "
+              "‘복사’를 선택하면 명령이 클립보드에 담깁니다.",
+        "ru": "Ничего не удалено. Правило можно убрать самостоятельно в Терминале — команда "
+              "попадёт в буфер обмена, если выбрать «Скопировать».",
+    },
+    "uninstall.failed.copy": {
+        "en": "Copy the command", "fr": "Copier la commande", "es": "Copiar el comando",
+        "de": "Befehl kopieren", "it": "Copia il comando", "pt-BR": "Copiar o comando",
+        "nl": "Commando kopiëren", "ja": "コマンドをコピー", "zh-Hans": "拷贝命令",
+        "ko": "명령 복사", "ru": "Скопировать команду",
+    },
     "uninstall.step.pam": {
         "en": "sudo rule removed, system Touch ID restored",
         "fr": "règle sudo retirée, Touch ID système rétabli",

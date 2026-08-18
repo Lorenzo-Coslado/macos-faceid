@@ -362,8 +362,24 @@ struct SettingsView: View {
         Uninstaller.run(deleteData: box.state == .on) { outcome in
             busy = false
             if let failure = outcome.failure {
-                note = String(format: L("uninstall.failed"), failure)
+                // Une alerte, pas une ligne de texte gris au fond de la fenêtre : c'est
+                // ce qui donnait l'impression que le bouton ne faisait rien. Et on offre
+                // la porte de sortie en terminal, pour ne pas laisser sans recours qui a
+                // installé par le paquet.
+                note = ""
                 refreshStatus()
+                let a = NSAlert()
+                a.alertStyle = .warning
+                a.messageText = L("uninstall.failed.title")
+                a.informativeText = failure + "\n\n" + L("uninstall.failed.manual")
+                a.addButton(withTitle: L("uninstall.failed.copy"))
+                a.addButton(withTitle: L("onb.close"))
+                if a.runModal() == .alertFirstButtonReturn {
+                    NSPasteboard.general.clearContents()
+                    NSPasteboard.general.setString(
+                        "sudo bash \(shq(Paths.script("pam-uninstall-root.sh")))",
+                        forType: .string)
+                }
                 return
             }
             let done = NSAlert()
