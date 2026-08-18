@@ -171,8 +171,16 @@ def test_socket():
         "PYTHONUNBUFFERED": "1",
         "FACEID_I18N": str(ROOT / "i18n"),
     })
-    env.setdefault("FACEID_MODELS_DIR",
-                   os.path.expanduser("~/Library/Application Support/faceid/models"))
+    models = os.environ.get(
+        "FACEID_MODELS_DIR",
+        os.path.expanduser("~/Library/Application Support/faceid/models"))
+    env["FACEID_MODELS_DIR"] = models
+    # Le daemon refuse de démarrer sans les modèles, et l'échec ressemblait alors à une
+    # régression du protocole plutôt qu'à un dépôt incomplet.
+    if not os.path.exists(os.path.join(models, "face_detection_yunet_2023mar.onnx")):
+        check("les modèles de reconnaissance sont présents", False,
+              f"absents de {models} — lancer scripts/download-models.sh")
+        return
     os.makedirs(f"{runtime}/Library/Application Support/faceid/logs", exist_ok=True)
 
     proc = subprocess.Popen([sys.executable, "-m", "faceid.daemon"],
