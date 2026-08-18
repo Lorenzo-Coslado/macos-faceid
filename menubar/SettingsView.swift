@@ -301,10 +301,28 @@ struct SettingsView: View {
 
     private func disableSudo() {
         busy = true; note = ""
-        HelperManager.shared.disableSudo { ok, msg in
+        // Même piège que la désinstallation : après une installation par le paquet, aucun
+        // helper n'est enregistré, l'appel XPC échouait, et le bouton paraissait inerte.
+        HelperManager.shared.withHelper({ HelperManager.shared.disableSudo($0) }) { ok, msg in
             busy = false
-            note = ok ? L("set.msg.sudo.off") : String(format: L("set.msg.cancelled"), msg)
             refreshStatus()
+            if ok {
+                note = L("set.msg.sudo.off")
+                return
+            }
+            // Un échec ici mérite une alerte : l'utilisateur vient de demander une
+            // action, elle n'a pas eu lieu, et une note grise ne le lui dit pas.
+            let a = NSAlert()
+            a.alertStyle = .warning
+            a.messageText = L("uninstall.failed.title")
+            a.informativeText = msg + "\n\n" + L("uninstall.failed.manual")
+            a.addButton(withTitle: L("uninstall.failed.copy"))
+            a.addButton(withTitle: L("onb.close"))
+            if a.runModal() == .alertFirstButtonReturn {
+                NSPasteboard.general.clearContents()
+                NSPasteboard.general.setString(
+                    "sudo bash \(shq(Paths.script("pam-uninstall-root.sh")))", forType: .string)
+            }
         }
     }
 

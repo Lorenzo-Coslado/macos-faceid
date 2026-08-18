@@ -6,6 +6,40 @@ All notable changes to this project are documented here. The format is based on
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-08-18
+
+### Fixed
+
+- The installer package installed somewhere else entirely. macOS looks for a bundle
+  already carrying the same identifier and installs over *that* — bundle relocation — so
+  on any machine holding another copy the app never reached Applications:
+  `PackageKit: Applications/Mugshot.app relocated to …/dist/Mugshot.app`. Relocation is
+  decided per bundle through a component plist, not by the package-level
+  `relocatable="false"`; the `<relocate>` block is now gone.
+- The package's postinstall then failed behind it, looking for the app at a hardcoded
+  `/Applications`. It exits 0 when it cannot find it, so `sudo` silently went unwired
+  while the installer reported success. It now derives the path from the target volume.
+- Uninstalling, and disabling sudo, did nothing after a package install. That path writes
+  the sudo rule with the installer's own privileges, so no helper is ever registered and
+  the XPC call went to a service that does not exist. Both now register the helper on
+  demand, and failures surface as an alert with the terminal command on offer, rather
+  than as grey text at the bottom of a scrolling window.
+- The installer's welcome page displayed its own markup: the file opened with an HTML
+  comment and had no doctype, so the Installer rendered the source as plain text.
+- The one choice the package asks about was hidden behind a Customize button nobody
+  clicks. The Installation Type step now opens on the list, and the package states that
+  it installs system-wide instead of letting the destination step vanish unexplained.
+- `finish-release.sh` stapled the notarized disk image, then deleted it and rebuilt one
+  with `hdiutil` — a different file, with no ticket at Apple. Anyone using it would have
+  shipped an unnotarized image believing otherwise.
+
+### Changed
+
+- The README leads with the installer package: one password instead of two macOS
+  permissions. The disk image stays available for those who prefer dragging.
+- Screenshots redone from the current build.
+
+
 ## [1.1.0] - 2026-08-14
 
 ### Added

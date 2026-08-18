@@ -160,6 +160,26 @@ final class HelperManager {
         call({ $0.checkAccess(withReply: $1) }, done)
     }
 
+    /// Exécute une opération privilégiée en s'assurant d'abord que le helper existe.
+    ///
+    /// Installé par le paquet, `sudo` est branché par l'Installeur lui-même : aucun
+    /// helper n'a jamais été enregistré. Tout appel XPC partait alors vers un service
+    /// inexistant et échouait — le bouton « Désactiver » comme la désinstallation
+    /// semblaient ne rien faire. Passer par ici garantit qu'on l'enregistre au besoin,
+    /// et que l'appelant reçoit un motif exploitable au lieu d'une erreur de connexion.
+    func withHelper(_ action: @escaping (@escaping (Bool, String) -> Void) -> Void,
+                    _ done: @escaping (Bool, String) -> Void) {
+        guard !isEnabled else { action(done); return }
+        switch ensureRegistered() {
+        case .enabled:
+            action(done)
+        case .needsApproval:
+            done(false, L("uninstall.needs.helper"))
+        case .failed(let message):
+            done(false, message)
+        }
+    }
+
     /// Teste uniquement le canal XPC; ne modifie pas la configuration PAM.
     func probe(_ done: @escaping (Bool, String) -> Void) {
         let c = newConnection()
