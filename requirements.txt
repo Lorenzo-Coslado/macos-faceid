@@ -3,4 +3,4 @@ numpy>=1.26
 # VideoCapture, tous dans le module principal. Les modules contrib et les backends
 # d'interface graphique pesaient une dizaine de mégaoctets pour rien.
 opencv-python-headless>=4.9,<5
-pyinstaller>=6.21,<7
+pyinstaller>=6.22.1,<7
