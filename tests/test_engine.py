@@ -142,14 +142,32 @@ def test_no_face_abort():
 def test_enroll_is_bounded():
     print("budget de l'enrôlement")
     # La boucle de capture n'avait aucune limite de temps : un enrôlement laissé en
-    # plan gardait la caméra et un cœur jusqu'à la fin de la session.
-    src = (ROOT / "faceid" / "enroll.py").read_text(encoding="utf-8")
-    check("la boucle est bornée dans le temps",
-          "config.ENROLL_TIMEOUT_S" in src)
-    check("le dépassement est signalé à l'interface",
-          'msg="enroll-timeout"' in src)
-    check("le budget est configurable", config.ENROLL_TIMEOUT_S > 0,
-          f"{config.ENROLL_TIMEOUT_S}s")
+    # plan gardait la caméra et un cœur jusqu'à la fin de la session. On exerce la
+    # vraie boucle, caméra factice à l'appui, plutôt que de relire le source.
+    from faceid import enroll
+
+    fake = SlowCapture()
+    original = cv2.VideoCapture
+    cv2.VideoCapture = lambda *a, **k: fake
+    saved_budget, saved_emit = config.ENROLL_TIMEOUT_S, enroll.emit
+    config.ENROLL_TIMEOUT_S = 0.5
+    events = []
+    enroll.emit = lambda **ev: events.append(ev)
+    started = time.time()
+    try:
+        code = enroll.main()
+    finally:
+        enroll.emit = saved_emit
+        config.ENROLL_TIMEOUT_S = saved_budget
+        cv2.VideoCapture = original
+    elapsed = time.time() - started
+
+    check("la boucle rend la main au lieu d'attendre un visage", code == 1)
+    check("elle dit pourquoi",
+          any(e.get("msg") == "enroll-timeout" for e in events),
+          ", ".join(str(e.get("msg") or e.get("event")) for e in events))
+    check("dans son budget", elapsed < 3.0, f"{elapsed:.2f}s")
+    check("la caméra est relâchée", fake.released)
 
 
 # ------------------------------------------------------------------- apparences
