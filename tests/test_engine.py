@@ -139,6 +139,36 @@ def test_no_face_abort():
         cv2.VideoCapture = original
 
 
+def test_present_face_is_never_cut_short():
+    print("un visage présent n'est jamais coupé par l'abandon")
+    # Le pendant du test précédent : l'abandon ne doit mordre QUE sur l'absence. On
+    # met le délai à une valeur absurde (1 ms) et on présente un visage dès la
+    # première frame ; la reconnaissance doit aboutir malgré tout.
+    fake = SlowCapture()
+    original = cv2.VideoCapture
+    cv2.VideoCapture = lambda *a, **k: fake
+    saved = config.VERIFY_NO_FACE_ABORT_S
+    config.VERIFY_NO_FACE_ABORT_S = 0.001
+    try:
+        enrolled = np.random.rand(1, 128).astype(np.float32)
+        d = daemon.Daemon.__new__(daemon.Daemon)
+        d.enrolled = enrolled
+        d.enrolled_mtime = 0.0
+        d._mtime = lambda: 0.0
+        # Caméra qui montre toujours le visage enrôlé : score = 1.0 à chaque frame.
+        d.engine = type("E", (), {
+            "frame_feature": lambda self, f: (enrolled[0], None)})()
+
+        ok, reason = d._verify_face_camera(timeout=30)
+        check("la reconnaissance aboutit", ok, reason)
+        check("l'abandon ne s'est pas déclenché", "no-face" not in reason, reason)
+        check("elle s'arrête au nombre de correspondances requis",
+              f"frames={config.VERIFY_REQUIRED_MATCHES}" in reason, reason)
+    finally:
+        config.VERIFY_NO_FACE_ABORT_S = saved
+        cv2.VideoCapture = original
+
+
 def test_enroll_is_bounded():
     print("budget de l'enrôlement")
     # La boucle de capture n'avait aucune limite de temps : un enrôlement laissé en
@@ -288,6 +318,7 @@ def test_socket():
 
 def main():
     for test in (test_warmup, test_cancel, test_no_face_abort,
+                 test_present_face_is_never_cut_short,
                  test_enroll_is_bounded, test_append,
                  test_flags, test_i18n, test_socket):
         test()
