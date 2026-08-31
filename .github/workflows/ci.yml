@@ -29,8 +29,10 @@ jobs:
       - name: Install Python dependencies
         run: |
           python -m venv .venv
-          ./.venv/bin/pip install --upgrade pip wheel
-          ./.venv/bin/pip install -r requirements.txt
+          ./.venv/bin/pip install --upgrade pip
+          # Depuis le lock, pas depuis les fourchettes : c'est la composition exacte
+          # du bundle qu'on teste et qu'on livre, pas ce que PyPI sert aujourd'hui.
+          ./.venv/bin/pip install -r requirements-lock.txt
 
       - name: Download models
         run: bash scripts/download-models.sh
@@ -102,8 +104,10 @@ jobs:
       - name: Install Python dependencies
         run: |
           python -m venv .venv
-          ./.venv/bin/pip install --upgrade pip wheel
-          ./.venv/bin/pip install -r requirements.txt
+          ./.venv/bin/pip install --upgrade pip
+          # Depuis le lock, pas depuis les fourchettes : c'est la composition exacte
+          # du bundle qu'on teste et qu'on livre, pas ce que PyPI sert aujourd'hui.
+          ./.venv/bin/pip install -r requirements-lock.txt
 
       - name: Download models
         run: bash scripts/download-models.sh

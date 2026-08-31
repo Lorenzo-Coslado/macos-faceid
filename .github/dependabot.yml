@@ -6,6 +6,14 @@ updates:
       interval: weekly
     open-pull-requests-limit: 5
     labels: ["dependencies"]
+    ignore:
+      # OpenCV 5 n'est pas un bump, c'est un chantier. Le réseau SFace y est
+      # numériquement identique (cosinus 1.000000 sur des entrées fixes), mais
+      # `alignCrop` a changé d'interpolation : 62 % des pixels du crop 112×112
+      # diffèrent, et l'embedding qui en sort bouge. Tant que le seuil n'a pas été
+      # re-mesuré sur de vraies paires de visages, le passage se décide à la main.
+      - dependency-name: "opencv-python-headless"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: github-actions
     directory: "/"

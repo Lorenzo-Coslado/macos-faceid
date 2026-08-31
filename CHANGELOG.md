@@ -6,6 +6,41 @@ All notable changes to this project are documented here. The format is based on
 
 ## [Unreleased]
 
+### Fixed
+
+- A `sudo` you did not look at cost eight seconds of a saturated core. The recognition
+  loop spent its whole budget even when the camera had not seen a single face — the
+  common case, since you type the command and keep reading your screen. Measured on an
+  M-series Air, a scan that runs to its budget burns 7.55 s of CPU over 162 frames,
+  webcam and capsule on top. It now gives up after three seconds without any face
+  (`FACEID_NO_FACE_ABORT`), which is where the password prompt was heading anyway; the
+  full budget still applies as soon as somebody is actually detected.
+- Enrolment held the camera indefinitely. Its capture loop had no time budget at all,
+  unlike the verification loop, so an enrolment nobody completed kept the webcam and a
+  core busy until the end of the session. It now stops after a minute
+  (`FACEID_ENROLL_TIMEOUT`) and reports why instead of waiting forever.
+- Closing the enrolment window left the scan running behind it. `cancel()` existed but
+  was never called from anywhere, and the window merely hides itself, so the engine
+  went on filming with the green light on and nothing to say so. Closing the window now
+  cancels the scan, and reopening enrolment no longer starts a second one alongside the
+  first.
+
+### Changed
+
+- The build now installs from `requirements-lock.txt` instead of the version ranges.
+  Every build used to take whatever PyPI served that day, so two builds of the same
+  Mugshot version did not necessarily contain the same OpenCV. For something that
+  guards `sudo`, what goes into the bundle should be a decision, not a date.
+- `scripts/download-models.sh` verifies the SHA-256 of both ONNX models. They are
+  pulled from the zoo's `main` branch, where a file can change under the same name —
+  and `COSINE_THRESHOLD` is calibrated for this exact SFace model, as are the
+  `embeddings.npy` people already enrolled. A silent swap would have moved the
+  threshold's meaning with nothing to catch it.
+- Dependabot no longer proposes OpenCV 5. Measured against 4.14, SFace itself is
+  numerically identical (cosine 1.000000 on fixed inputs), but `alignCrop` changed
+  interpolation — 62 % of the pixels in the 112×112 crop differ. The move is a
+  deliberate pass with a threshold re-measured on real faces, not an automated bump.
+
 ## [1.1.1] - 2026-08-18
 
 ### Fixed
