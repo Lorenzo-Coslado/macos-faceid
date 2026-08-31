@@ -19,6 +19,10 @@ final class EnrollController: ObservableObject {
     /// après un échec : repartir en mode remplacement écraserait le visage déjà
     /// enregistré alors que l'utilisateur voulait seulement lui ajouter une apparence.
     func reset(appending: Bool? = nil) {
+        // Couper le scan précédent avant d'en préparer un autre : rouvrir
+        // l'enrôlement pendant qu'un scan tournait en lançait un second, les deux
+        // se disputant la caméra.
+        cancel()
         phase = .intro; count = 0; message = ""
         if let appending { self.appending = appending }
     }
@@ -92,7 +96,13 @@ final class EnrollController: ObservableObject {
         return translated == "err.\(code)" ? code : translated
     }
 
-    func cancel() { proc?.terminate() }
+    /// Arrête le scan en cours. Le processus d'enrôlement tient la caméra jusqu'à
+    /// avoir ses échantillons : le laisser vivre après la fermeture de la fenêtre,
+    /// c'était le voyant vert allumé et un cœur occupé sans que rien ne l'indique.
+    func cancel() {
+        if let p = proc, p.isRunning { p.terminate() }
+        proc = nil
+    }
 }
 
 struct OnboardingView: View {

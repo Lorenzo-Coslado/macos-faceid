@@ -73,7 +73,7 @@ struct MenuHeader: View {
 }
 
 // ---------- contrôleur principal ----------
-final class AppController: NSObject, NSApplicationDelegate {
+final class AppController: NSObject, NSApplicationDelegate, NSWindowDelegate {
     let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
     let daemon = DaemonController()
     let enroll = EnrollController()
@@ -308,6 +308,7 @@ final class AppController: NSObject, NSApplicationDelegate {
             }
             let win = brandedWindow(width: 440, height: 500, titled: false)
             win.contentView = NSHostingView(rootView: view)
+            win.delegate = self
             onboardingWC = NSWindowController(window: win)
         }
         present(onboardingWC)
@@ -325,6 +326,14 @@ final class AppController: NSObject, NSApplicationDelegate {
             settingsWC = NSWindowController(window: win)
         }
         present(settingsWC)
+    }
+
+    /// Fermer la fenêtre d'enrôlement arrête le scan. La croix se contentait de
+    /// masquer la fenêtre — `isReleasedWhenClosed` est faux — et le moteur continuait
+    /// à filmer derrière, jusqu'à la fin de la session.
+    func windowWillClose(_ n: Notification) {
+        guard (n.object as? NSWindow) === onboardingWC?.window else { return }
+        enroll.cancel()
     }
 
     func brandedWindow(width: CGFloat, height: CGFloat, titled: Bool) -> NSWindow {

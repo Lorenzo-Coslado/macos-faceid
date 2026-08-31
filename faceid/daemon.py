@@ -240,12 +240,19 @@ class Daemon:
         best_overall = -1.0
         max_bright = 0.0
         last_frame = None
+        gave_up = False
         t0 = time.time()
         try:
             while (frames < config.VERIFY_MAX_FRAMES
                    and (time.time() - t0) < tmo):
                 if cancelled is not None and cancelled.is_set():
                     return False, f"cancelled frames={frames}"
+                # Personne devant l'objectif : on rend la main au mot de passe plutôt
+                # que de faire tourner le détecteur jusqu'au bout du budget.
+                if (faces_seen == 0
+                        and (time.time() - t0) > config.VERIFY_NO_FACE_ABORT_S):
+                    gave_up = True
+                    break
                 ok, frame = cap.read()
                 if not ok:
                     continue
@@ -276,7 +283,8 @@ class Daemon:
                 pass
         dt = time.time() - t0
         return False, (f"best={best_overall:.3f} frames={frames} "
-                       f"faces={faces_seen} bright={max_bright:.0f} t={dt:.1f}s")
+                       f"faces={faces_seen} bright={max_bright:.0f} t={dt:.1f}s"
+                       + (" no-face" if gave_up else ""))
 
     # ---- Touch ID (helper Swift) ----
     def verify_touch(self):

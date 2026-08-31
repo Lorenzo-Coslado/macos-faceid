@@ -76,8 +76,16 @@ def main():
 
     samples = []
     last_capture = 0.0
+    started = time.time()
     try:
         while len(samples) < config.ENROLL_SAMPLES:
+            # La boucle attendait ses échantillons sans limite de temps : quand la
+            # fenêtre se fermait en cours de route, ou que personne ne se présentait
+            # devant la caméra, elle tenait l'objectif et un cœur indéfiniment.
+            if (time.time() - started) > config.ENROLL_TIMEOUT_S:
+                emit(event="error", msg="enroll-timeout",
+                     captured=len(samples), expected=config.ENROLL_SAMPLES)
+                return 1
             ok, frame = cap.read()
             if not ok:
                 continue

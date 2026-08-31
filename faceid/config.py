@@ -121,6 +121,10 @@ DETECT_CONFIDENCE = float(os.environ.get("FACEID_DETECT_CONF", "0.7"))
 
 # Nombre d'échantillons collectés à l'enrôlement.
 ENROLL_SAMPLES = int(os.environ.get("FACEID_ENROLL_SAMPLES", "12"))
+# Budget de l'enrôlement. Sa boucle de capture n'en avait aucun : tant qu'elle n'avait
+# pas ses douze échantillons elle tournait, et un enrôlement abandonné gardait la
+# caméra et un cœur jusqu'à la fin de la session.
+ENROLL_TIMEOUT_S = float(os.environ.get("FACEID_ENROLL_TIMEOUT", "60.0"))
 
 # Vérification : combien de frames indépendantes doivent matcher, et budget temps.
 # Le TEMPS est la vraie limite ; le plafond de frames n'est qu'un garde-fou haut
@@ -131,6 +135,13 @@ VERIFY_TIMEOUT_S = float(os.environ.get("FACEID_TIMEOUT", "8.0"))
 # Écran verrouillé : budget plus court (< timeout du module PAM = 6 s) pour
 # basculer vite sur le mot de passe si besoin.
 LOCK_TIMEOUT_S = float(os.environ.get("FACEID_LOCK_TIMEOUT", "5.0"))
+# Abandon anticipé quand l'objectif ne voit personne. La boucle consommait tout son
+# budget même sans avoir détecté le moindre visage : un `sudo` lancé sans regarder la
+# caméra — le cas courant quand on tape une commande — coûtait un cœur saturé pendant
+# huit secondes, caméra et capsule comprises. Passé ce délai sans aucun visage, il n'y
+# a personne devant l'objectif et attendre ne changera pas l'issue. Le compte s'arrête
+# au premier visage vu : dès qu'il y a quelqu'un, le budget complet s'applique.
+VERIFY_NO_FACE_ABORT_S = float(os.environ.get("FACEID_NO_FACE_ABORT", "3.0"))
 
 # Taille minimale (px) du visage détecté pour être exploitable.
 MIN_FACE_SIZE = int(os.environ.get("FACEID_MIN_FACE", "80"))

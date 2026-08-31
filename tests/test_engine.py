@@ -110,6 +110,48 @@ def test_cancel():
         cv2.VideoCapture = original
 
 
+# ------------------------------------------------------------- absence de visage
+def test_no_face_abort():
+    print("abandon quand personne n'est devant la caméra")
+    fake = SlowCapture()
+    original = cv2.VideoCapture
+    cv2.VideoCapture = lambda *a, **k: fake
+    saved = config.VERIFY_NO_FACE_ABORT_S
+    config.VERIFY_NO_FACE_ABORT_S = 0.5
+    try:
+        d = daemon.Daemon.__new__(daemon.Daemon)
+        d.enrolled = np.random.rand(4, 128).astype(np.float32)
+        d.enrolled_mtime = 0.0
+        d._mtime = lambda: 0.0
+        d.engine = type("E", (), {"frame_feature": lambda self, f: (None, None)})()
+
+        started = time.time()
+        ok, reason = d._verify_face_camera(timeout=30)
+        elapsed = time.time() - started
+
+        check("il renonce au lieu d'épuiser le budget",
+              not ok and "no-face" in reason, reason)
+        check("sans attendre les 30 s de budget", elapsed < 2.0,
+              f"{elapsed:.2f}s")
+        check("la caméra est relâchée", fake.released)
+    finally:
+        config.VERIFY_NO_FACE_ABORT_S = saved
+        cv2.VideoCapture = original
+
+
+def test_enroll_is_bounded():
+    print("budget de l'enrôlement")
+    # La boucle de capture n'avait aucune limite de temps : un enrôlement laissé en
+    # plan gardait la caméra et un cœur jusqu'à la fin de la session.
+    src = (ROOT / "faceid" / "enroll.py").read_text(encoding="utf-8")
+    check("la boucle est bornée dans le temps",
+          "config.ENROLL_TIMEOUT_S" in src)
+    check("le dépassement est signalé à l'interface",
+          'msg="enroll-timeout"' in src)
+    check("le budget est configurable", config.ENROLL_TIMEOUT_S > 0,
+          f"{config.ENROLL_TIMEOUT_S}s")
+
+
 # ------------------------------------------------------------------- apparences
 def test_append():
     print("apparences cumulatives")
@@ -227,7 +269,8 @@ def test_socket():
 
 
 def main():
-    for test in (test_warmup, test_cancel, test_append,
+    for test in (test_warmup, test_cancel, test_no_face_abort,
+                 test_enroll_is_bounded, test_append,
                  test_flags, test_i18n, test_socket):
         test()
     print()
