@@ -21,6 +21,8 @@ set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$HERE"
+BUILD_COMMIT="$(git rev-parse HEAD)"
+[ -z "$(git status --porcelain)" ] || { echo 'Commit the source before building a public release' >&2; exit 1; }
 APP="$HERE/dist/Mugshot.app"
 ENT="$HERE/packaging/entitlements.plist"
 DMG="$HERE/dist/Mugshot.dmg"
@@ -122,6 +124,8 @@ spctl -a -vv -t exec "$APP" 2>&1 | head -2
 spctl -a -vv -t open --context context:primary-signature "$DMG" 2>&1 | head -2
 if [ "$BUILD_PKG" != "0" ]; then
   spctl -a -vv -t install "$PKG" 2>&1 | head -2
+  [ "$(git rev-parse HEAD)" = "$BUILD_COMMIT" ] && [ -z "$(git status --porcelain)" ] \
+    || { echo 'Source changed during the release build; rebuild from a fixed commit' >&2; exit 1; }
   python3 "$HERE/scripts/verify-release.py" "${MARKETING_VERSION:?Set MARKETING_VERSION}" "${BUILD_VERSION:?Set BUILD_VERSION}" --record
 fi
 

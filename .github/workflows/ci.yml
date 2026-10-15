@@ -169,6 +169,18 @@ jobs:
           # Root's successful signature check used to hide a root:600 seal.
           lsbom /tmp/pkg-check/app.pkg/Bom | grep 'Mugshot.app/Contents/_CodeSignature/CodeResources' | grep -q '100644'
 
+      - name: Root installation remains usable by the ordinary user
+        run: |
+          sudo installer -pkg dist/Mugshot.pkg -target /
+          codesign --verify --deep --strict /Applications/Mugshot.app
+          python3 scripts/bundle-permissions.py /Applications/Mugshot.app
+          test "$(stat -f %u /Applications/Mugshot.app/Contents/_CodeSignature/CodeResources)" = 0
+          sudo bash /Applications/Mugshot.app/Contents/Resources/scripts/pam-uninstall-root.sh
+
       - name: Clean up
         if: always()
-        run: sudo rm -f /etc/pam.d/sudo_local /usr/local/lib/pam/pam_faceid.so
+        run: |
+          if [ -f /Applications/Mugshot.app/Contents/Resources/scripts/pam-uninstall-root.sh ]; then
+            sudo bash /Applications/Mugshot.app/Contents/Resources/scripts/pam-uninstall-root.sh
+          fi
+          sudo rm -f /etc/pam.d/sudo_local /usr/local/lib/pam/pam_faceid.so
