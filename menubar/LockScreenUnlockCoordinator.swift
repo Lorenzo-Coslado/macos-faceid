@@ -13,9 +13,9 @@ private func CGSessionCopyCurrentDictionary() -> CFDictionary?
 enum LockScreenDestination {
     static func sessionIsEligible(_ values: [String: Any], userID: uid_t = getuid()) -> Bool {
         values["CGSSessionScreenIsLocked"] as? Bool == true
-            && values["kCGSSessionOnConsoleKey"] as? Bool == true
-            && values["kCGSSessionLoginDoneKey"] as? Bool == true
-            && (values["kCGSSessionUserIDKey"] as? NSNumber)?.uint32Value == userID
+            && values[kCGSessionOnConsoleKey as String] as? Bool == true
+            && values[kCGSessionLoginDoneKey as String] as? Bool == true
+            && (values[kCGSessionUserIDKey as String] as? NSNumber)?.uint32Value == userID
     }
 
     static var sessionIsEligible: Bool {

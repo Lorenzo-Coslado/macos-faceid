@@ -62,7 +62,7 @@ final class LockScreenSetupFlow: ObservableObject {
         refresh()
         guard automaticallyPoll, running else { return }
         poll = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
-            Task { @MainActor in self?.refresh() }
+            Task { @MainActor [weak self] in self?.refresh() }
         }
     }
 
@@ -87,7 +87,7 @@ final class LockScreenSetupFlow: ObservableObject {
             requestingCamera = true
             let expected = generation
             services.requestCamera { [weak self] granted in
-                Task { @MainActor in
+                Task { @MainActor [weak self] in
                     guard let self, self.running, self.generation == expected else { return }
                     if granted { self.requestingCamera = false; self.refresh() }
                     else { self.message = L("onb.cam.denied.full") }

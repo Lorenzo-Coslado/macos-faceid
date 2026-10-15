@@ -126,12 +126,12 @@ cp "$HERE/i18n/engine.json" "$RES/i18n/"      # invites du moteur, hors bundle S
 
 echo "══ 6/6  Signature persistante ══"
 bash "$HERE/scripts/check-macos-compat.sh" "$APP"
-REFERENCE=()
-[ ! -d /Applications/Mugshot.app ] || REFERENCE=(--reference /Applications/Mugshot.app)
+SIGN_ARGS=(sign "$APP")
+[ ! -d /Applications/Mugshot.app ] || SIGN_ARGS+=(--reference /Applications/Mugshot.app)
 if [ "${MUGSHOT_ALLOW_DEVELOPMENT_MIGRATION:-0}" = "1" ]; then
-  REFERENCE+=(--allow-development-migration)
+  SIGN_ARGS+=(--allow-development-migration)
 fi
-python3 "$HERE/scripts/local-signing.py" sign "$APP" "${REFERENCE[@]}"
+python3 "$HERE/scripts/local-signing.py" "${SIGN_ARGS[@]}"
 
 SIZE=$(du -sh "$APP" | cut -f1)
 echo

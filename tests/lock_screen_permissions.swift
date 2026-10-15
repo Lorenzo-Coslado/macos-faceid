@@ -42,14 +42,14 @@ struct PermissionTests {
                      "A real Accessibility grant must be accepted even when PostEvent reports false")
         var session: [String: Any] = ["CGSSessionScreenIsLocked": true,
                                      "kCGSSessionOnConsoleKey": true,
-                                     "kCGSSessionLoginDoneKey": true,
+                                     "kCGSessionLoginDoneKey": true,
                                      "kCGSSessionUserIDKey": 501]
         precondition(LockScreenDestination.sessionIsEligible(session, userID: 501))
         precondition(!LockScreenDestination.sessionIsEligible(session, userID: 502), "Never target another user's session")
         session["kCGSSessionOnConsoleKey"] = false
         precondition(!LockScreenDestination.sessionIsEligible(session, userID: 501), "Fast user switching must cancel delivery")
         session["kCGSSessionOnConsoleKey"] = true
-        session["kCGSSessionLoginDoneKey"] = false
+        session["kCGSessionLoginDoneKey"] = false
         precondition(!LockScreenDestination.sessionIsEligible(session, userID: 501), "First login must stay unsupported")
         var destination: pid_t? = 614
         var posts = 0

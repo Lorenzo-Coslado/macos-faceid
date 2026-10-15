@@ -127,9 +127,9 @@ chmod +x "$HERE"/scripts/*.sh 2>/dev/null || true
 
 echo "== Signature locale =="
 bash "$HERE/scripts/check-macos-compat.sh" "$APP"
-REFERENCE=()
+SIGN_ARGS=(sign "$APP")
 [ ! -d "$DEST" ] || REFERENCE=(--reference "$DEST")
-python3 "$HERE/scripts/local-signing.py" sign "$APP" "${REFERENCE[@]}"
+python3 "$HERE/scripts/local-signing.py" "${SIGN_ARGS[@]}"
 
 echo "== Package de développement =="
 ALLOW_UNSIGNED_PKG=1 bash "$HERE/scripts/build-pkg.sh" "$APP" "$HERE/build/Mugshot-dev.pkg"
