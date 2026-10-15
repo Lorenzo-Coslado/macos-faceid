@@ -9,8 +9,13 @@
 Face recognition for `sudo` and your locked session. A native macOS menu bar app,
 with an animated HUD that unfolds from the camera notch.
 
-[**Download for macOS**](https://github.com/Lorenzo-Coslado/macos-faceid/releases/latest/download/Mugshot.pkg) · [Releases](https://github.com/Lorenzo-Coslado/macos-faceid/releases) · [Report an issue](https://github.com/Lorenzo-Coslado/macos-faceid/issues)
+<a href="https://github.com/Lorenzo-Coslado/macos-faceid/releases/latest/download/Mugshot.pkg">
+  <img src="assets/download-macos.png" width="300" alt="Download for macOS" />
+</a>
 
+[Releases](https://github.com/Lorenzo-Coslado/macos-faceid/releases) · [Report an issue](https://github.com/Lorenzo-Coslado/macos-faceid/issues)
+
+<a href="https://github.com/Lorenzo-Coslado/macos-faceid/releases"><img src="https://img.shields.io/github/downloads/Lorenzo-Coslado/macos-faceid/total?label=downloads&color=3ba55d&logo=github&logoColor=white" alt="Total downloads" /></a>
 <img src="https://img.shields.io/badge/macOS-14%2B-222222?logo=apple" alt="macOS 14 or later" />
 <img src="https://img.shields.io/badge/Apple%20Silicon-222222" alt="Apple Silicon" />
 <a href="https://github.com/Lorenzo-Coslado/macos-faceid/actions/workflows/ci.yml"><img src="https://github.com/Lorenzo-Coslado/macos-faceid/actions/workflows/ci.yml/badge.svg" alt="Build and tests" /></a>
@@ -208,20 +213,7 @@ sudo bash /Applications/Mugshot.app/Contents/Resources/scripts/pam-uninstall-roo
 
 ## How it works
 
-```mermaid
-flowchart LR
-    A["sudo"] --> B["PAM module"]
-    B --> C["Recognition engine\nMugshot's user session"]
-    D["Camera"] --> C
-    E["Local face embeddings"] --> C
-    C --> F["Match result"]
-    F --> B
-    B --> G["Allow sudo or fall back"]
-    C --> H["Fusion HUD"]
-    F --> I["Optional lock-screen coordinator"]
-    J["Mac Keychain"] --> I
-    I --> K["Keyboard events\nLocked session only"]
-```
+<img src="assets/architecture.svg" width="960" alt="Local recognition: sudo requests a face match through PAM, using the camera and enrolled faces. The engine drives the Fusion HUD and returns success or password fallback to PAM. Optional lock-screen unlock checks permissions and the session, then uses the saved Keychain password to send keyboard events to the locked session." />
 
 The app owns the camera request in your login session. A root process such as sudo
 asks the engine for recognition through the PAM module rather than trying to access

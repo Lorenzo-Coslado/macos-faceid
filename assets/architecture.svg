@@ -1,61 +1,68 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="900" height="330" viewBox="0 0 900 330" font-family="Helvetica, Arial, sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" width="740" height="400" viewBox="0 0 1000 540" role="img" aria-labelledby="title description">
+  <title id="title">How Mugshot works</title>
+  <desc id="description">The PAM module asks the user's recognition engine to match camera frames with enrolled faces. The engine animates the Fusion HUD and returns the match result to PAM. Optional lock-screen unlock checks permissions and session state, then sends the saved Keychain password to the genuine macOS loginwindow process.</desc>
   <defs>
-    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
-      <path d="M0,0 L8,3 L0,6 Z" fill="#5b6472"/>
+    <marker id="arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 8 4 0 8Z" fill="#697871"/>
     </marker>
-    <marker id="arrowg" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
-      <path d="M0,0 L8,3 L0,6 Z" fill="#2f9e44"/>
+    <marker id="result" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0 0 8 4 0 8Z" fill="#347b4a"/>
     </marker>
-    <filter id="sh" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="1.5" stdDeviation="2.5" flood-color="#0b1220" flood-opacity="0.16"/>
-    </filter>
   </defs>
+  <rect x="1" y="1" width="998" height="538" rx="20" fill="#fafcfb" stroke="#dce5df"/>
+  <g font-family="-apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif" text-anchor="middle" fill="#20352a">
+    <text x="32" y="40" text-anchor="start" font-size="14" font-weight="700" letter-spacing="1.3">ON YOUR MAC</text>
 
-  <rect x="1" y="1" width="898" height="328" rx="14" fill="#ffffff" stroke="#e5e9f0"/>
+    <g fill="none" stroke="#697871" stroke-width="2" marker-end="url(#arrow)">
+      <path d="M182 201H232"/>
+      <path d="M402 201H462"/>
+      <path d="M520 119V143"/>
+      <path d="M704 119V131H640V143"/>
+      <path d="M698 201H786"/>
+      <path d="M580 255V368"/>
+      <path d="M402 413H462"/>
+      <path d="M698 413H786"/>
+    </g>
+    <path d="M504 255V295H317V235" fill="none" stroke="#347b4a" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#result)"/>
+    <text x="432" y="188" font-size="11" fill="#58665e">request</text>
+    <text x="412" y="319" font-size="13" fill="#347b4a">Match result → allow sudo or use password</text>
+    <text x="592" y="349" text-anchor="start" font-size="12" fill="#58665e">face recognized</text>
 
-  <!-- boxes -->
-  <g filter="url(#sh)">
-    <rect x="34" y="132" width="112" height="66" rx="8" fill="#eef2ff" stroke="#4b5563" stroke-width="1.5"/>
-    <rect x="212" y="122" width="176" height="86" rx="8" fill="#f8fafc" stroke="#4b5563" stroke-width="1.5"/>
-    <rect x="452" y="122" width="168" height="86" rx="8" fill="#ecfdf5" stroke="#4b5563" stroke-width="1.5"/>
-    <rect x="700" y="44"  width="164" height="60" rx="8" fill="#f8fafc" stroke="#4b5563" stroke-width="1.5"/>
-    <rect x="700" y="214" width="164" height="72" rx="8" fill="#f8fafc" stroke="#4b5563" stroke-width="1.5"/>
+    <g stroke="#d2ddd5" fill="#fff">
+      <rect x="32" y="168" width="150" height="66" rx="12"/>
+      <rect x="232" y="168" width="170" height="66" rx="12"/>
+      <rect x="440" y="63" width="160" height="56" rx="12"/>
+      <rect x="624" y="63" width="170" height="56" rx="12"/>
+      <rect x="786" y="168" width="180" height="66" rx="12"/>
+      <rect x="232" y="380" width="170" height="66" rx="12"/>
+      <rect x="786" y="380" width="180" height="66" rx="12"/>
+    </g>
+    <g fill="#eaf5ec" stroke="#8dbf99">
+      <rect x="462" y="145" width="236" height="110" rx="14"/>
+      <rect x="462" y="370" width="236" height="86" rx="14"/>
+    </g>
+
+    <g font-size="17" font-weight="600">
+      <text x="107" y="208" font-family="Menlo, monospace">sudo</text>
+      <text x="317" y="195">PAM module</text>
+      <text x="520" y="98">Camera</text>
+      <text x="709" y="98">Enrolled faces</text>
+      <text x="580" y="180">Recognition engine</text>
+      <text x="876" y="195">Fusion HUD</text>
+      <text x="317" y="407">Mac Keychain</text>
+      <text x="580" y="397">Lock-screen unlock</text>
+      <text x="876" y="407">Keyboard events</text>
+    </g>
+    <g font-size="13" fill="#58665e">
+      <text x="317" y="216">runs as root</text>
+      <text x="580" y="205">YuNet + SFace</text>
+      <text x="580" y="230">Mugshot's user session</text>
+      <text x="876" y="216">scan and match animation</text>
+      <text x="317" y="428">saved login password</text>
+      <text x="580" y="420">optional · checks permissions</text>
+      <text x="580" y="439">and locked-session state</text>
+      <text x="876" y="428">genuine macOS loginwindow</text>
+    </g>
+    <text x="500" y="505" font-size="13" fill="#58665e">Camera frames and face data stay on your Mac. FileVault and the first login still require your password.</text>
   </g>
-
-  <!-- box labels -->
-  <text x="90"  y="171" text-anchor="middle" font-size="20" font-weight="700" fill="#1f2937">sudo</text>
-
-  <text x="300" y="152" text-anchor="middle" font-size="15" font-weight="700" fill="#1f2937">PAM module</text>
-  <text x="300" y="173" text-anchor="middle" font-size="12.5" fill="#6b7280" font-family="ui-monospace, Menlo, monospace">pam_faceid.so</text>
-  <text x="300" y="192" text-anchor="middle" font-size="11.5" fill="#9ca3af">runs as root</text>
-
-  <text x="536" y="152" text-anchor="middle" font-size="15" font-weight="700" fill="#1f2937">Daemon</text>
-  <text x="536" y="173" text-anchor="middle" font-size="12.5" fill="#6b7280">your login session</text>
-  <text x="536" y="192" text-anchor="middle" font-size="11.5" fill="#9ca3af">owns the camera</text>
-
-  <text x="782" y="70"  text-anchor="middle" font-size="14" font-weight="700" fill="#1f2937">Webcam</text>
-  <text x="782" y="90"  text-anchor="middle" font-size="11.5" fill="#9ca3af">RGB frames</text>
-
-  <text x="782" y="243" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2937">Recognition</text>
-  <text x="782" y="263" text-anchor="middle" font-size="12" fill="#6b7280">YuNet + SFace</text>
-  <text x="782" y="279" text-anchor="middle" font-size="11.5" fill="#9ca3af">cosine match</text>
-
-  <!-- arrows -->
-  <line x1="146" y1="165" x2="206" y2="165" stroke="#5b6472" stroke-width="2" marker-end="url(#arrow)"/>
-  <text x="176" y="156" text-anchor="middle" font-size="11.5" fill="#5b6472">1</text>
-
-  <line x1="388" y1="165" x2="446" y2="165" stroke="#5b6472" stroke-width="2" marker-end="url(#arrow)"/>
-  <text x="417" y="150" text-anchor="middle" font-size="11" fill="#5b6472">2 · socket</text>
-
-  <line x1="620" y1="150" x2="695" y2="82"  stroke="#5b6472" stroke-width="2" marker-end="url(#arrow)"/>
-  <text x="648" y="108" text-anchor="middle" font-size="11" fill="#5b6472">3 · capture</text>
-
-  <line x1="620" y1="180" x2="695" y2="242" stroke="#5b6472" stroke-width="2" marker-end="url(#arrow)"/>
-  <text x="648" y="222" text-anchor="middle" font-size="11" fill="#5b6472">4 · match</text>
-
-  <!-- return: result -->
-  <path d="M452 200 C 360 262, 220 262, 146 190" fill="none" stroke="#2f9e44" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#arrowg)"/>
-  <text x="300" y="278" text-anchor="middle" font-size="12" font-weight="600" fill="#2f9e44">OK unlocks · FAIL falls back to password</text>
-
-  <text x="450" y="40" text-anchor="middle" font-size="13" font-weight="700" fill="#374151" letter-spacing="0.5">HOW A sudo IS UNLOCKED BY YOUR FACE</text>
 </svg>
