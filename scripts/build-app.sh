@@ -128,7 +128,7 @@ chmod +x "$HERE"/scripts/*.sh 2>/dev/null || true
 echo "== Signature locale =="
 bash "$HERE/scripts/check-macos-compat.sh" "$APP"
 SIGN_ARGS=(sign "$APP")
-[ ! -d "$DEST" ] || REFERENCE=(--reference "$DEST")
+[ ! -d "$DEST" ] || SIGN_ARGS+=(--reference "$DEST")
 python3 "$HERE/scripts/local-signing.py" "${SIGN_ARGS[@]}"
 
 echo "== Package de développement =="
