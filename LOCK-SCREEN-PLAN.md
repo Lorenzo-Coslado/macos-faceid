@@ -1,4 +1,9 @@
-# Face ID pour l'écran verrouillé — plan via plugin d'autorisation (voie légitime, SIP‑compatible)
+# Face ID pour l'écran verrouillé — recherche sur le plugin d'autorisation
+
+> **Statut : voie non retenue.** Mugshot utilise désormais l'approche de Sapphire :
+> reconnaissance dans la session utilisateur, mot de passe conservé dans le Keychain,
+> puis injection clavier avec l'autorisation Accessibilité. Le document ci-dessous est
+> conservé comme historique de la piste `SecurityAgent`, plus risquée et non nécessaire.
 
 ## ✅ RÉSULTATS DE VALIDATION (22 juil.)
 

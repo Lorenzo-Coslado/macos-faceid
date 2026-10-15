@@ -9,6 +9,7 @@ import SwiftUI
 struct SettingsView: View {
     @ObservedObject var settings = Settings.shared
     @StateObject private var setup = SetupFlow()
+    @StateObject private var lockSetup = LockScreenSetupFlow()
     var onEnroll: (_ appending: Bool) -> Void
     var onApply: () -> Void          // redémarre le daemon avec le nouvel env
 
@@ -17,7 +18,10 @@ struct SettingsView: View {
     @State private var busy = false
     @State private var note = ""
     @State private var showingSetup = false
+    @State private var showingLockSetup = false
     @State private var testResult: TestResult?
+    @State private var isTesting = false
+    @State private var accessibilityTrusted = LockScreenAccessibility.isTrusted
     // Listé une fois : brancher un iPhone pendant que la fenêtre est ouverte est rare,
     // et ré-interroger AVFoundation à chaque rendu réveillerait le téléphone.
     @State private var cameras = Cameras.list()
@@ -34,6 +38,7 @@ struct SettingsView: View {
                 VStack(alignment: .leading, spacing: 22) {
                     faceSection
                     sudoSection
+                    lockScreenSection
                     behaviourSection
                     if !note.isEmpty {
                         Text(note).font(.system(size: 11.5)).foregroundStyle(.secondary)
@@ -49,10 +54,32 @@ struct SettingsView: View {
         }
         .frame(width: 460, height: 620)
         .background(VisualEffect().ignoresSafeArea())
-        .onAppear { refreshStatus() }
+        .onAppear {
+            refreshStatus()
+            resumeLockSetup()
+        }
+        .onReceive(Timer.publish(every: 1, on: .main, in: .common).autoconnect()) { _ in
+            accessibilityTrusted = LockScreenAccessibility.isTrusted
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .mugshotContinueSetup)) { _ in
+            refreshStatus()
+            resumeLockSetup()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            // L'autorisation Accessibilité change hors de l'app. Au retour de
+            // Réglages Système, l'interface doit refléter la nouvelle valeur sans
+            // demander de fermer puis rouvrir la fenêtre.
+            refreshStatus()
+        }
         .sheet(isPresented: $showingSetup) {
             SetupSheet(flow: setup) {
                 showingSetup = false
+                refreshStatus()
+            }
+        }
+        .sheet(isPresented: $showingLockSetup) {
+            LockScreenSetupSheet(flow: lockSetup) {
+                showingLockSetup = false
                 refreshStatus()
             }
         }
@@ -73,42 +100,68 @@ struct SettingsView: View {
         .padding(.horizontal, 24).padding(.vertical, 18)
     }
 
-    // ---- bandeau d'état ----
-    // Une phrase, et le bouton qui règle le problème qu'elle décrit. C'est la seule
-    // partie de la fenêtre qui compte quand quelque chose ne marche pas.
     private var statusBanner: some View {
         HStack(spacing: 12) {
-            Image(systemName: bannerIcon)
-                .font(.system(size: 18))
-                .foregroundStyle(bannerReady ? Brand.green : .orange)
+            if isTesting {
+                ProgressView().controlSize(.small).frame(width: 18, height: 18)
+            } else {
+                Image(systemName: bannerIcon)
+                    .font(.system(size: 18))
+                    .foregroundStyle(bannerReady ? Brand.green : .orange)
+            }
             VStack(alignment: .leading, spacing: 2) {
                 Text(bannerTitle).font(.system(size: 13, weight: .semibold))
                 Text(bannerDetail).font(.system(size: 11)).foregroundStyle(.secondary)
             }
             Spacer()
-            if let (label, action) = bannerAction {
+            if !isTesting, let (label, action) = bannerAction {
                 Button(label, action: action).tint(Brand.green)
             }
         }
         .padding(.horizontal, 24).padding(.vertical, 14)
     }
 
-    private var bannerReady: Bool { enrolled && sudoActive }
+    private var lockConfigured: Bool {
+        settings.screenUnlockEnabled && LoginPasswordStore.isConfigured
+    }
+    private var lockReady: Bool { lockConfigured && accessibilityTrusted }
+    private var bannerReady: Bool {
+        if let result = testResult { return result.ok }
+        return enrolled && sudoActive && (!lockConfigured || lockReady)
+    }
     private var bannerIcon: String {
-        bannerReady ? "checkmark.seal.fill" : "exclamationmark.circle.fill"
+        if let result = testResult {
+            return result.ok ? "checkmark.seal.fill" : "xmark.circle.fill"
+        }
+        return bannerReady ? "checkmark.seal.fill" : "exclamationmark.circle.fill"
     }
     private var bannerTitle: String {
+        if isTesting { return L("banner.testing.title") }
+        if let result = testResult {
+            return result.ok ? L("notify.test.ok") : L("notify.test.fail")
+        }
         if !enrolled { return L("banner.noface.title") }
+        if lockConfigured && !accessibilityTrusted { return L("set.lockscreen.permission") }
         if !sudoActive { return L("banner.nosudo.title") }
         return L("banner.ready.title")
     }
     private var bannerDetail: String {
+        if isTesting { return L("banner.testing.detail") }
+        if let result = testResult {
+            return result.ok ? L("banner.test.ok.detail") : L("banner.test.fail.detail")
+        }
         if !enrolled { return L("banner.noface.detail") }
+        if lockConfigured && !accessibilityTrusted {
+            return L("banner.accessibility.detail")
+        }
         if !sudoActive { return L("banner.nosudo.detail") }
         return L("banner.ready.detail")
     }
     private var bannerAction: (String, () -> Void)? {
         if !enrolled { return (L("set.face.setup"), { onEnroll(false) }) }
+        if lockConfigured && !accessibilityTrusted {
+            return (L("set.lockscreen.accessibility.short"), openAccessibilitySettings)
+        }
         if !sudoActive { return (L("banner.nosudo.action"), beginSetup) }
         return (L("banner.ready.action"), runTest)
     }
@@ -126,9 +179,6 @@ struct SettingsView: View {
                 }.tint(Brand.green)
             }
             if enrolled {
-                // Comme les « apparences » du vrai Face ID : lunettes, barbe, lumière
-                // du soir. Ré-enrôler remplaçait tout, donc s'adapter coûtait de
-                // recommencer à zéro.
                 HStack(spacing: 6) {
                     Button(L("set.face.append")) { onEnroll(true) }
                         .buttonStyle(.link).tint(Brand.green)
@@ -159,7 +209,6 @@ struct SettingsView: View {
         }
     }
 
-    // ---- section sudo ----
     private var sudoSection: some View {
         section(L("set.section.sudo")) {
             HStack {
@@ -178,6 +227,39 @@ struct SettingsView: View {
             Text(L("set.sudo.desc"))
                 .font(.system(size: 11)).foregroundStyle(.secondary)
         }
+    }
+
+    private var lockScreenSection: some View {
+        section(L("set.section.lockscreen")) {
+            HStack {
+                Label(lockScreenStatus,
+                      systemImage: lockReady ? "lock.open.fill"
+                      : (lockConfigured ? "exclamationmark.triangle.fill" : "lock.fill"))
+                    .foregroundStyle(lockReady ? Brand.green
+                                     : (lockConfigured ? Color.orange : .secondary))
+                Spacer()
+                if lockConfigured {
+                    Button(L("set.lockscreen.disable"), action: disableLockScreenUnlock)
+                } else {
+                    Button(L("set.lockscreen.configure"), action: configureLockScreenUnlock)
+                        .tint(Brand.green)
+                }
+            }
+            Text(L("set.lockscreen.desc"))
+                .font(.system(size: 11)).foregroundStyle(.secondary)
+            if lockConfigured && !accessibilityTrusted {
+                Button(action: openAccessibilitySettings) {
+                    Label(L("set.lockscreen.accessibility.short"), systemImage: "hand.raised.fill")
+                }
+                .buttonStyle(.link).tint(.orange)
+            }
+        }
+    }
+
+    private var lockScreenStatus: String {
+        if lockReady { return L("set.lockscreen.on") }
+        if lockConfigured { return L("set.lockscreen.permission") }
+        return L("set.lockscreen.off")
     }
 
     // ---- section comportement ----
@@ -288,9 +370,45 @@ struct SettingsView: View {
     private func refreshStatus() {
         sudoActive = Status.sudoActive
         enrolled = Status.enrolled
+        accessibilityTrusted = LockScreenAccessibility.isTrusted
     }
 
     private func applyDaemon() { onApply() }
+
+    private func openAccessibilitySettings() {
+        configureLockScreenUnlock()
+    }
+
+    private func configureLockScreenUnlock() {
+        guard enrolled else {
+            showLockScreenAlert(title: L("set.lockscreen.needface"),
+                                message: L("set.lockscreen.needface.desc"))
+            return
+        }
+
+        showingLockSetup = true
+    }
+
+    private func resumeLockSetup() {
+        guard enrolled, UserDefaults.standard.bool(forKey: LockScreenSetupFlow.pendingKey),
+              !showingSetup else { return }
+        showingLockSetup = true
+    }
+
+    private func disableLockScreenUnlock() {
+        settings.screenUnlockEnabled = false
+        _ = LoginPasswordStore.delete()
+        note = L("set.lockscreen.disabled")
+    }
+
+    private func showLockScreenAlert(title: String, message: String) {
+        let alert = NSAlert()
+        alert.alertStyle = .warning
+        alert.messageText = title
+        alert.informativeText = message
+        alert.addButton(withTitle: L("onb.close"))
+        alert.runModal()
+    }
 
     private func beginSetup() {
         note = ""
@@ -327,12 +445,16 @@ struct SettingsView: View {
     }
 
     private func runTest() {
+        guard !isTesting else { return }
+        isTesting = true
         testResult = nil
         DispatchQueue.global().async {
-            let r = Run.faceid(["verify"])
+            let r = Run.faceid(["verify"], env: Settings.shared.env)
             let out = r.out.trimmingCharacters(in: .whitespacesAndNewlines)
             DispatchQueue.main.async {
-                testResult = TestResult(ok: out.contains("OK"), detail: out)
+                isTesting = false
+                testResult = TestResult(ok: r.code == 0 && out.split(whereSeparator: \.isWhitespace).contains("OK"),
+                                        detail: out)
             }
         }
     }
@@ -345,6 +467,7 @@ struct SettingsView: View {
         DispatchQueue.global().async {
             let out = Run.bashUser("bash \(shq(Paths.script("diagnose.sh"))) "
                                    + shq(Bundle.main.bundleURL.path)).out
+                + "\n" + LockScreenAccessibility.diagnostic + "\n"
             DispatchQueue.main.async {
                 NSPasteboard.general.clearContents()
                 NSPasteboard.general.setString(out, forType: .string)

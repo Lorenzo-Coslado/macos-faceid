@@ -366,6 +366,98 @@ TR = {
         "ko": "암호는 항상 대체 수단으로 남습니다.",
         "ru": "Ваш пароль всегда остаётся запасным вариантом.",
     },
+    "set.section.lockscreen": {
+        "en": "Lock screen", "fr": "Écran verrouillé",
+    },
+    "set.lockscreen.on": {
+        "en": "Face unlock enabled", "fr": "Déverrouillage facial activé",
+    },
+    "set.lockscreen.off": {
+        "en": "Face unlock disabled", "fr": "Déverrouillage facial désactivé",
+    },
+    "set.lockscreen.configure": {
+        "en": "Configure…", "fr": "Configurer…",
+    },
+    "set.lockscreen.disable": {
+        "en": "Disable", "fr": "Désactiver",
+    },
+    "set.lockscreen.desc": {
+        "en": "Mugshot types your saved password after recognizing you. Unavailable for FileVault and after a restart.",
+        "fr": "Mugshot saisit votre mot de passe après vous avoir reconnu. Indisponible pour FileVault et après un redémarrage.",
+    },
+    "set.lockscreen.accessibility": {
+        "en": "Allow Mugshot in Accessibility settings", "fr": "Autoriser Mugshot dans les réglages Accessibilité",
+    },
+    "set.lockscreen.accessibility.short": {
+        "en": "Allow…", "fr": "Autoriser…",
+    },
+    "set.lockscreen.needface": {
+        "en": "Set up your face first", "fr": "Configurez d’abord votre visage",
+    },
+    "set.lockscreen.needface.desc": {
+        "en": "Mugshot needs an enrolled face before lock-screen unlock can be enabled.",
+        "fr": "Mugshot a besoin d’un visage enregistré avant d’activer le déverrouillage de l’écran.",
+    },
+    "set.lockscreen.permission": {
+        "en": "Accessibility permission required", "fr": "Autorisation Accessibilité requise",
+    },
+    "set.lockscreen.permission.desc": {
+        "en": "Enable Mugshot in Privacy & Security › Accessibility. Setup resumes automatically.",
+        "fr": "Activez Mugshot dans Confidentialité et sécurité › Accessibilité. La configuration reprend automatiquement.",
+    },
+    "lock.setup.title": {
+        "en": "Set up lock-screen unlock", "fr": "Configurer le déverrouillage de l’écran",
+    },
+    "lock.setup.intro": {
+        "en": "Grant the permissions once. Mugshot detects each approval and continues automatically.",
+        "fr": "Accordez les autorisations une fois. Mugshot détecte chaque accord et poursuit automatiquement.",
+    },
+    "lock.setup.camera": {
+        "en": "Camera access", "fr": "Accès à la caméra",
+    },
+    "lock.setup.waiting": {
+        "en": "Enable Mugshot in Privacy & Security › Accessibility. This window updates automatically while System Settings is open.",
+        "fr": "Activez Mugshot dans Confidentialité et sécurité › Accessibilité. Cette fenêtre se met à jour automatiquement pendant que les Réglages sont ouverts.",
+    },
+    "lock.setup.repair": {
+        "en": "Already enabled but still waiting? Remove the old Mugshot entry with − and completely quit System Settings. Reopen Accessibility, add the current app from Applications with +, and enable it. Then restart Mugshot below. Toggling an old entry can keep its outdated signature.",
+        "fr": "Déjà coché, mais toujours en attente ? Retirez l’ancienne entrée Mugshot avec − et quittez complètement Réglages Système. Rouvrez Accessibilité, ajoutez l’app actuelle depuis Applications avec +, puis activez-la. Relancez ensuite Mugshot ci-dessous. Cocher une ancienne entrée peut conserver sa signature périmée.",
+    },
+    "lock.setup.restart": {
+        "en": "Restart Mugshot and resume", "fr": "Relancer Mugshot et reprendre",
+    },
+    "lock.setup.later": {
+        "en": "Set up later", "fr": "Configurer plus tard",
+    },
+    "set.lockscreen.password.title": {
+        "en": "Enable lock-screen face unlock?", "fr": "Activer le déverrouillage facial de l’écran ?",
+    },
+    "set.lockscreen.password.desc": {
+        "en": "Enter your Mac login password. Mugshot verifies it, stores it in this Mac’s Keychain, and retrieves it only after your face is recognized. This is less secure than Apple Touch ID or Apple Watch unlock.",
+        "fr": "Saisissez votre mot de passe de session Mac. Mugshot le vérifie, le conserve dans le trousseau de ce Mac et ne le récupère qu’après reconnaissance de votre visage. Cette méthode est moins sûre que Touch ID ou le déverrouillage par Apple Watch.",
+    },
+    "set.lockscreen.password.placeholder": {
+        "en": "Mac login password", "fr": "Mot de passe de session Mac",
+    },
+    "set.lockscreen.enable": {
+        "en": "Enable", "fr": "Activer",
+    },
+    "set.lockscreen.enabled": {
+        "en": "Lock-screen face unlock is enabled.", "fr": "Le déverrouillage facial de l’écran est activé.",
+    },
+    "set.lockscreen.disabled": {
+        "en": "Lock-screen face unlock is disabled and its saved password was deleted.",
+        "fr": "Le déverrouillage facial de l’écran est désactivé et son mot de passe enregistré a été supprimé.",
+    },
+    "set.lockscreen.failed": {
+        "en": "Could not enable face unlock", "fr": "Impossible d’activer le déverrouillage facial",
+    },
+    "lock.password.empty": {
+        "en": "The password is empty.", "fr": "Le mot de passe est vide.",
+    },
+    "lock.password.invalid": {
+        "en": "The Mac login password is incorrect.", "fr": "Le mot de passe de session Mac est incorrect.",
+    },
     "set.section.behavior": {
         "en": "Behavior", "fr": "Comportement", "es": "Comportamiento",
         "de": "Verhalten", "it": "Comportamento", "pt-BR": "Comportamento",
@@ -941,6 +1033,24 @@ TR = {
         "pt-BR": "Testar", "nl": "Testen", "ja": "テスト", "zh-Hans": "测试",
         "ko": "테스트", "ru": "Проверить",
     },
+    "banner.accessibility.detail": {
+        "en": "Allow Mugshot to type your password on the lock screen.",
+        "fr": "Autorisez Mugshot à saisir votre mot de passe sur l’écran verrouillé.",
+    },
+    "banner.testing.title": {
+        "en": "Looking for you…", "fr": "Recherche de votre visage…",
+    },
+    "banner.testing.detail": {
+        "en": "Look at the camera.", "fr": "Regardez la caméra.",
+    },
+    "banner.test.ok.detail": {
+        "en": "Face recognition is working correctly.",
+        "fr": "La reconnaissance faciale fonctionne correctement.",
+    },
+    "banner.test.fail.detail": {
+        "en": "Face the camera and try again in better light.",
+        "fr": "Regardez la caméra et réessayez avec plus de lumière.",
+    },
     "banner.noface.title": {
         "en": "No face registered yet", "fr": "Aucun visage enregistré",
         "es": "Aún no hay rostro registrado", "de": "Noch kein Gesicht erfasst",
@@ -1141,6 +1251,42 @@ TR = {
         "en": "Ready", "fr": "Prêt", "es": "Listo", "de": "Bereit", "it": "Pronto",
         "pt-BR": "Pronto", "nl": "Klaar", "ja": "準備完了", "zh-Hans": "已就绪",
         "ko": "준비됨", "ru": "Готово",
+    },
+    "menu.status.partial": {
+        "en": "1 of 2 protections active", "fr": "1 protection sur 2 active",
+        "es": "1 de 2 protecciones activa", "de": "1 von 2 Schutzfunktionen aktiv",
+        "it": "1 protezione su 2 attiva", "pt-BR": "1 de 2 proteções ativa",
+        "nl": "1 van 2 beveiligingen actief", "ja": "2つの保護のうち1つが有効",
+        "zh-Hans": "2 项保护中有 1 项已启用", "ko": "2개 보호 중 1개 활성",
+        "ru": "Активна 1 из 2 функций защиты",
+    },
+    "menu.status.setup": {
+        "en": "Finish setup", "fr": "Terminer la configuration",
+        "es": "Finalizar configuración", "de": "Einrichtung abschließen",
+        "it": "Completa la configurazione", "pt-BR": "Concluir configuração",
+        "nl": "Configuratie voltooien", "ja": "設定を完了",
+        "zh-Hans": "完成设置", "ko": "설정 완료", "ru": "Завершить настройку",
+    },
+    "menu.capability.lock": {
+        "en": "Lock screen", "fr": "Écran verrouillé", "es": "Pantalla bloqueada",
+        "de": "Sperrbildschirm", "it": "Schermata di blocco", "pt-BR": "Tela bloqueada",
+        "nl": "Vergrendelscherm", "ja": "ロック画面", "zh-Hans": "锁定屏幕",
+        "ko": "잠금 화면", "ru": "Экран блокировки",
+    },
+    "menu.capability.terminal": {
+        "en": "Terminal", "fr": "Terminal", "es": "Terminal", "de": "Terminal",
+        "it": "Terminale", "pt-BR": "Terminal", "nl": "Terminal", "ja": "ターミナル",
+        "zh-Hans": "终端", "ko": "터미널", "ru": "Терминал",
+    },
+    "menu.capability.ready": {
+        "en": "Ready", "fr": "Prêt", "es": "Listo", "de": "Bereit", "it": "Pronto",
+        "pt-BR": "Pronto", "nl": "Klaar", "ja": "準備完了", "zh-Hans": "已就绪",
+        "ko": "준비됨", "ru": "Готово",
+    },
+    "menu.capability.setup": {
+        "en": "Set up", "fr": "À configurer", "es": "Configurar", "de": "Einrichten",
+        "it": "Da configurare", "pt-BR": "Configurar", "nl": "Instellen",
+        "ja": "要設定", "zh-Hans": "待设置", "ko": "설정 필요", "ru": "Настроить",
     },
     "menu.status.stopped": {
         "en": "Stopped", "fr": "Arrêté", "es": "Detenido", "de": "Gestoppt",

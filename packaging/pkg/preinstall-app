@@ -1,0 +1,23 @@
+#!/bin/bash
+# Replacing a bundle does not replace a running process's code identity.
+# Stop only the installed app and its frozen engines before changing its files.
+set -euo pipefail
+export PATH=/usr/bin:/bin:/usr/sbin:/sbin
+[ "${3:-/}" = "/" ] || { echo "Mugshot requires the running startup volume" >&2; exit 1; }
+
+# Installer's private scripts directory carries the old identity to postinstall.
+# A compatible certificate keeps grants; a one-time migration clears stale ones.
+PREVIOUS="$(dirname "$0")/previous-app-requirement"
+if [ -d /Applications/Mugshot.app ]; then
+    /usr/bin/codesign -d -r- --verbose=4 /Applications/Mugshot.app 2>&1 \
+        | /usr/bin/sed -n -E 's/^(# )?designated => //p' > "$PREVIOUS"
+fi
+
+stop_matching() {
+    local result=0
+    /usr/bin/pkill -TERM -f "$1" || result=$?
+    # pkill returns 1 when there is no instance (normal on a fresh installation).
+    [ "$result" -le 1 ] || return "$result"
+}
+stop_matching '^/Applications/Mugshot\.app/Contents/MacOS/Mugshot([[:space:]]|$)'
+stop_matching '^/Applications/Mugshot\.app/Contents/Resources/faceid/faceid daemon([[:space:]]|$)'

@@ -66,7 +66,10 @@ echo "== Vérification Gatekeeper =="
 spctl -a -vv -t exec "$APP" 2>&1 | head -2
 if [ -f "$DMG" ]; then spctl -a -vv -t open --context context:primary-signature "$DMG" 2>&1 | head -2; fi
 if [ -f "$PKG" ]; then spctl -a -vv -t install "$PKG" 2>&1 | head -2; fi
+VERSION=$(/usr/libexec/PlistBuddy -c 'Print CFBundleShortVersionString' "$APP/Contents/Info.plist")
+BUILD=$(/usr/libexec/PlistBuddy -c 'Print CFBundleVersion' "$APP/Contents/Info.plist")
+python3 "$HERE/scripts/verify-release.py" "$VERSION" "$BUILD" --record
 
 echo
 echo "✅ Artefacts notarisés et staplés. Publie avec :"
-echo "   ./scripts/release.sh <version> <build>   (reprend à l'appcast)"
+echo "   ./scripts/release.sh $VERSION $BUILD --reuse   (prépare le brouillon sans reconstruire)"

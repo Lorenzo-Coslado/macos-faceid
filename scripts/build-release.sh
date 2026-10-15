@@ -16,6 +16,8 @@
 # Usage :
 #   DEV_ID="Developer ID Application: Ton Nom (TEAMID)" ./scripts/build-release.sh
 set -euo pipefail
+: "${MARKETING_VERSION:?Set MARKETING_VERSION for the release}"
+: "${BUILD_VERSION:?Set the increasing BUILD_VERSION}"
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$HERE"
@@ -30,9 +32,10 @@ DEV_ID="${DEV_ID:-$(security find-identity -v -p codesigning 2>/dev/null \
   | grep 'Developer ID Application' | head -1 | sed -E 's/.*"(.*)"/\1/')}"
 [ -n "$DEV_ID" ] || { echo "❌ Aucun certificat 'Developer ID Application'. Crée-le dans Xcode."; exit 1; }
 echo "Signature avec : $DEV_ID"
+"$HERE/.venv/bin/python" -m pip install -r "$HERE/requirements-build.txt" --quiet
 
 echo "══ 1  Assemblage de l'app autonome ══"
-bash scripts/build-standalone.sh
+LOCAL_SIGN_IDENTITY="$DEV_ID" MUGSHOT_ALLOW_DEVELOPMENT_MIGRATION=1 bash scripts/build-standalone.sh
 
 echo "══ 2  Signature inside-out (Developer ID + hardened runtime) ══"
 # a) TOUS les Mach-O empaquetés par PyInstaller (dylibs, .so, binaire du
@@ -72,6 +75,7 @@ codesign --force --timestamp --options runtime --entitlements "$ENT" --sign "$DE
 
 echo "══ 3  Vérification ══"
 codesign --verify --deep --strict --verbose=2 "$APP" 2>&1 | tail -3
+python3 "$HERE/scripts/bundle-permissions.py" "$APP"
 
 echo "══ 4  DMG ══"
 # Ship the /Applications symlink so the window shows the usual drag-to-install layout.
@@ -92,7 +96,7 @@ codesign --force --timestamp --sign "$DEV_ID" "$DMG"
 BUILD_PKG="${BUILD_PKG:-1}"
 if [ "$BUILD_PKG" != "0" ]; then
   echo "══ 5  Paquet d'installation ══"
-  bash "$HERE/scripts/build-pkg.sh" "$APP" "$PKG"
+  ALLOW_UNSIGNED_PKG=0 bash "$HERE/scripts/build-pkg.sh" "$APP" "$PKG"
 fi
 
 echo "══ 6  Notarisation (upload + attente Apple) ══"
@@ -118,6 +122,7 @@ spctl -a -vv -t exec "$APP" 2>&1 | head -2
 spctl -a -vv -t open --context context:primary-signature "$DMG" 2>&1 | head -2
 if [ "$BUILD_PKG" != "0" ]; then
   spctl -a -vv -t install "$PKG" 2>&1 | head -2
+  python3 "$HERE/scripts/verify-release.py" "${MARKETING_VERSION:?Set MARKETING_VERSION}" "${BUILD_VERSION:?Set BUILD_VERSION}" --record
 fi
 
 echo

@@ -162,12 +162,13 @@ class Daemon:
         return "password"
 
     # ---- capsule HUD (Dynamic Island) ----
-    def _hud_start(self):
+    def _hud_start(self, lock_screen=False):
         """Lance la capsule. Retourne (process, event d'annulation)."""
         if not config.HUD_ENABLED or not config.FACEID_HUD.exists():
             return None, None
         try:
-            hud = subprocess.Popen([str(config.FACEID_HUD)],
+            args = [str(config.FACEID_HUD)] + (["--lock"] if lock_screen else [])
+            hud = subprocess.Popen(args,
                                    stdin=subprocess.PIPE, stdout=subprocess.PIPE)
         except OSError as e:
             log(f"hud start error : {e}")
@@ -210,7 +211,7 @@ class Daemon:
     def verify_lock(self):
         # Écran verrouillé : pas de modal, visage direct, budget court.
         # Le HUD (Dynamic Island) est affiché comme sur sudo.
-        hud, cancelled = self._hud_start()
+        hud, cancelled = self._hud_start(lock_screen=True)
         ok, reason = self._verify_face_camera(timeout=config.LOCK_TIMEOUT_S,
                                               cancelled=cancelled)
         self._hud_finish(hud, ok)

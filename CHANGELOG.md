@@ -6,6 +6,41 @@ All notable changes to this project are documented here. The format is based on
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-10-15
+
+### Added
+
+- Optional face unlock for an already logged-in, locked session, with a continuous
+  camera, Accessibility and Mac login-password setup. FileVault and first login
+  after a restart still require normal authentication.
+- Fusion: a taller animated HUD attached to the camera notch, with scanning,
+  recognition and password-fallback states. Displays without a notch use a capsule.
+- Reusable macOS documentation previews and new README animations and images.
+
+### Fixed
+
+- Local rebuilds now keep a persistent signing certificate instead of invalidating
+  macOS consent every time a HUD resource changes. Migration to Developer ID is
+  explicit; compatible updates preserve the application's permission identity.
+- Signature resources remain readable after Installer changes their owner to root.
+  Packages validate the installed signature as the logged-in user before setup.
+- Lock-screen password events target the genuine Apple loginwindow process. Session,
+  feature state and permissions are rechecked after Keychain retrieval; changing
+  users or unlocking concurrently cancels delivery instead of typing into another app.
+- Stale permission dialogs no longer repeat on every configuration attempt. Setup
+  resumes after restart and detects camera and Accessibility approvals automatically.
+- Packages stop the previous app, install into Applications, verify the exact
+  executable and open that copy rather than a development URL handler.
+
+### Release tooling
+
+- Distribution verifies Developer ID, hardened runtime, timestamps, notarization,
+  Gatekeeper, package payload permissions and Sparkle signatures against the embedded
+  public key. Releases are tied to a clean source commit with successful CI.
+- Release preparation creates a GitHub draft. Existing notarized artifacts can be
+  resumed without rebuilding, and public releases cannot be silently overwritten.
+- DMG layout is generated without opening or automating Finder.
+
 ### Fixed
 
 - A `sudo` you did not look at cost eight seconds of a saturated core. The recognition

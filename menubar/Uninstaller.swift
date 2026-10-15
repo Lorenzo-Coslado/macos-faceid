@@ -41,6 +41,8 @@ enum Uninstaller {
 
             // 2. Désenregistrer le daemon privilégié et l'ouverture à la session.
             HelperManager.shared.unregister()
+            Settings.shared.screenUnlockEnabled = false
+            _ = LoginPasswordStore.delete()
             outcome.steps.append(L("uninstall.step.helper"))
             if #available(macOS 13.0, *) {
                 try? SMAppService.mainApp.unregister()

@@ -12,7 +12,7 @@
          liste des options. Avec "allow", la case « Enable Face ID for sudo » se cache
          derrière un bouton « Personnaliser » que personne ne clique — l'utilisateur
          n'avait donc aucune idée de ce qu'il acceptait. -->
-    <options customize="always" require-scripts="false" hostArchitectures="arm64"/>
+    <options customize="always" require-scripts="true" hostArchitectures="arm64"/>
 
     <!-- Destination explicite. Sans cette déclaration, l'Installeur décide seul et saute
          l'étape sans rien dire ; ici on annonce clairement une installation système. -->

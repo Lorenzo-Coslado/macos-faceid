@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Construit Mugshot.app AUTONOME : moteur Python + OpenCV + modèles + helpers +
 # module PAM, tout embarqué. Aucune dépendance au dossier projet ni au venv.
-# (Signature ad-hoc ici ; Developer ID + notarisation = build-release.sh.)
+# (Signature locale persistante ici ; Developer ID + notarisation = build-release.sh.)
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -15,6 +15,7 @@ BUNDLE_ID="com.lorenzo.Mugshot"
 MARKETING_VERSION="${MARKETING_VERSION:-1.0}"   # ex: 1.0.1 (surchargé par release.sh)
 BUILD_VERSION="${BUILD_VERSION:-1}"             # entier monotone (Sparkle compare ceci)
 MODELS="${FACEID_MODELS_DIR:-$HOME/Library/Application Support/faceid/models}"
+python3 "$HERE/scripts/local-signing.py" init
 
 echo "══ 1/6  Prérequis (modèles, helpers, module PAM, assets, i18n) ══"
 [ -f "$MODELS/face_recognition_sface_2021dec.onnx" ] || bash scripts/download-models.sh
@@ -58,8 +59,10 @@ rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$RES"
 swiftc -O -swift-version 5 -target "$MUGSHOT_SWIFT_TARGET" -o "$APP/Contents/MacOS/Mugshot" \
   menubar/Branding.swift menubar/Onboarding.swift menubar/SettingsView.swift menubar/SetupFlow.swift menubar/SetupSheet.swift menubar/Uninstaller.swift \
-  menubar/HelperManager.swift helpertool/HelperProtocol.swift menubar/FaceIDApp.swift \
+  menubar/HelperManager.swift menubar/LoginPasswordStore.swift menubar/LockScreenUnlockCoordinator.swift menubar/LockScreenSetup.swift \
+  helpertool/HelperProtocol.swift menubar/FaceIDApp.swift \
   -framework AppKit -framework SwiftUI -framework AVFoundation -framework ServiceManagement -framework Security \
+  -framework ApplicationServices -framework OpenDirectory \
   -F "$HERE/vendor/sparkle" -framework Sparkle \
   -Xlinker -rpath -Xlinker @executable_path/../Frameworks
 # daemon privilégié root (SMAppService + XPC)
@@ -77,6 +80,9 @@ cat > "$APP/Contents/Info.plist" <<PLIST
   <key>CFBundleDisplayName</key>     <string>Mugshot</string>
   <key>CFBundleIdentifier</key>      <string>${BUNDLE_ID}</string>
   <key>CFBundleExecutable</key>      <string>Mugshot</string>
+  <key>CFBundleURLTypes</key>
+  <array><dict><key>CFBundleURLName</key><string>${BUNDLE_ID}.setup</string>
+    <key>CFBundleURLSchemes</key><array><string>mugshot</string></array></dict></array>
   <key>CFBundleIconFile</key>        <string>Mugshot</string>
   <key>CFBundlePackageType</key>     <string>APPL</string>
   <key>CFBundleShortVersionString</key> <string>${MARKETING_VERSION}</string>
@@ -87,7 +93,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
   <key>SUPublicEDKey</key>           <string>MYs0iwYg/b5lDERYBHVBBiIw8R2awqExOluwOfZlp0w=</string>
   <key>SUEnableAutomaticChecks</key> <true/>
   <key>NSCameraUsageDescription</key>
-  <string>Reconnaissance faciale locale pour déverrouiller sudo.</string>
+  <string>Reconnaissance faciale locale pour sudo et le déverrouillage de l’écran.</string>
 </dict>
 </plist>
 PLIST
@@ -118,9 +124,14 @@ cp -R "$HERE"/i18n/*.lproj "$RES/"
 mkdir -p "$RES/i18n"
 cp "$HERE/i18n/engine.json" "$RES/i18n/"      # invites du moteur, hors bundle Swift
 
-echo "══ 6/6  Signature ad-hoc (test local) ══"
+echo "══ 6/6  Signature persistante ══"
 bash "$HERE/scripts/check-macos-compat.sh" "$APP"
-codesign --force --deep --sign - "$APP" 2>/dev/null
+REFERENCE=()
+[ ! -d /Applications/Mugshot.app ] || REFERENCE=(--reference /Applications/Mugshot.app)
+if [ "${MUGSHOT_ALLOW_DEVELOPMENT_MIGRATION:-0}" = "1" ]; then
+  REFERENCE+=(--allow-development-migration)
+fi
+python3 "$HERE/scripts/local-signing.py" sign "$APP" "${REFERENCE[@]}"
 
 SIZE=$(du -sh "$APP" | cut -f1)
 echo

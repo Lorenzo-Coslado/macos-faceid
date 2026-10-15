@@ -108,6 +108,9 @@ final class Settings: ObservableObject {
     @Published var threshold: Double { didSet { d.set(threshold, forKey: "faceid.threshold") } }
     @Published var modal: Bool { didSet { d.set(modal, forKey: "faceid.modal") } }
     @Published var hud: Bool { didSet { d.set(hud, forKey: "faceid.hud") } }
+    @Published var screenUnlockEnabled: Bool {
+        didSet { d.set(screenUnlockEnabled, forKey: "faceid.screenUnlock") }
+    }
     /// Index de la caméra, ou -1 pour laisser le moteur choisir (il évite alors
     /// l'iPhone appairé, que macOS expose comme caméra et place parfois en premier).
     @Published var cameraIndex: Int { didSet { d.set(cameraIndex, forKey: "faceid.camera") } }
@@ -116,6 +119,7 @@ final class Settings: ObservableObject {
         threshold = d.object(forKey: "faceid.threshold") as? Double ?? 0.36
         modal = d.object(forKey: "faceid.modal") as? Bool ?? false
         hud = d.object(forKey: "faceid.hud") as? Bool ?? true
+        screenUnlockEnabled = d.object(forKey: "faceid.screenUnlock") as? Bool ?? false
         cameraIndex = d.object(forKey: "faceid.camera") as? Int ?? -1
     }
 
@@ -199,7 +203,7 @@ enum Run {
         let p = Process()
         p.executableURL = URL(fileURLWithPath: "/bin/bash")
         p.arguments = ["-lc", command]
-        p.currentDirectoryURL = URL(fileURLWithPath: Paths.root)
+        if !Paths.bundled { p.currentDirectoryURL = URL(fileURLWithPath: Paths.root) }
         let pipe = Pipe(); p.standardOutput = pipe; p.standardError = pipe
         do { try p.run() } catch { return (-1, "\(error)") }
         p.waitUntilExit()

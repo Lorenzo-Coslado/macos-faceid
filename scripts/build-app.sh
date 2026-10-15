@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Construit Mugshot.app (menu bar + fenêtres) et l'installe dans /Applications.
+# Construit Mugshot.app et son package de développement, avec identité stable.
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -8,10 +8,8 @@ APP="$HERE/build/Mugshot.app"
 BUNDLE_ID="com.lorenzo.Mugshot"
 DEST="/Applications/Mugshot.app"
 
-echo "== Arrêt d'une instance existante =="
-pkill -f "Mugshot.app/Contents/MacOS/Mugshot" 2>/dev/null || true
-pkill -f "faceid.daemon" 2>/dev/null || true
-sleep 1
+echo "== Identité de signature persistante =="
+python3 "$HERE/scripts/local-signing.py" init
 
 echo "== Régénération du glyphe source =="
 "$HERE/.venv/bin/python" "$HERE/scripts/make_icon.py"
@@ -47,6 +45,9 @@ cat > "$APP/Contents/Info.plist" <<PLIST
   <key>CFBundleDisplayName</key>     <string>Mugshot</string>
   <key>CFBundleIdentifier</key>      <string>${BUNDLE_ID}</string>
   <key>CFBundleExecutable</key>      <string>Mugshot</string>
+  <key>CFBundleURLTypes</key>
+  <array><dict><key>CFBundleURLName</key><string>${BUNDLE_ID}.setup</string>
+    <key>CFBundleURLSchemes</key><array><string>mugshot</string></array></dict></array>
   <key>CFBundleIconFile</key>        <string>Mugshot</string>
   <key>CFBundlePackageType</key>     <string>APPL</string>
   <key>CFBundleShortVersionString</key> <string>1.0</string>
@@ -64,7 +65,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
     <string>zh-Hans</string><string>ko</string><string>ru</string>
   </array>
   <key>NSCameraUsageDescription</key>
-  <string>Reconnaissance faciale locale pour déverrouiller sudo.</string>
+  <string>Reconnaissance faciale locale pour sudo et le déverrouillage de l’écran.</string>
   <key>FaceIDProjectRoot</key>       <string>${HERE}</string>
 </dict>
 </plist>
@@ -102,9 +103,13 @@ swiftc -O -swift-version 5 \
   "$HERE/menubar/SetupSheet.swift" \
   "$HERE/menubar/Uninstaller.swift" \
   "$HERE/menubar/HelperManager.swift" \
+  "$HERE/menubar/LoginPasswordStore.swift" \
+  "$HERE/menubar/LockScreenUnlockCoordinator.swift" \
+  "$HERE/menubar/LockScreenSetup.swift" \
   "$HERE/helpertool/HelperProtocol.swift" \
   "$HERE/menubar/FaceIDApp.swift" \
   -framework AppKit -framework SwiftUI -framework AVFoundation -framework ServiceManagement -framework Security \
+  -framework ApplicationServices -framework OpenDirectory \
   -F "$HERE/vendor/sparkle" -framework Sparkle \
   -Xlinker -rpath -Xlinker @executable_path/../Frameworks
 
@@ -120,14 +125,14 @@ swiftc -O -swift-version 5 \
 echo "== Scripts exécutables =="
 chmod +x "$HERE"/scripts/*.sh 2>/dev/null || true
 
-echo "== Signature ad-hoc =="
+echo "== Signature locale =="
 bash "$HERE/scripts/check-macos-compat.sh" "$APP"
-codesign --force --deep --sign - "$APP"
+REFERENCE=()
+[ ! -d "$DEST" ] || REFERENCE=(--reference "$DEST")
+python3 "$HERE/scripts/local-signing.py" sign "$APP" "${REFERENCE[@]}"
 
-echo "== Installation dans /Applications =="
-rm -rf "$DEST"
-cp -R "$APP" "$DEST"
-echo "   -> $DEST"
+echo "== Package de développement =="
+ALLOW_UNSIGNED_PKG=1 bash "$HERE/scripts/build-pkg.sh" "$APP" "$HERE/build/Mugshot-dev.pkg"
 
 echo
-echo "Mugshot.app installé. Lance-le :  open \"$DEST\""
+echo "Ouvre build/Mugshot-dev.pkg pour installer la version vérifiée dans Applications."

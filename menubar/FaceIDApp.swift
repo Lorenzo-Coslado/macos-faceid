@@ -38,44 +38,88 @@ final class DaemonController {
 }
 
 // ---------- en-tête brandé du menu ----------
-/// Résume l'état en une ligne compréhensible. L'en-tête disait « Daemon running », ce
-/// qui renseigne sur un processus et pas sur la question posée : est-ce que `sudo` va
-/// reconnaître mon visage ?
+/// Résume les deux usages de Mugshot sans exposer le fonctionnement interne du daemon.
 struct MenuHeader: View {
     var running: Bool
+    var enrolled: Bool
+    var sudoEnabled: Bool
+    var lockScreenEnabled: Bool
 
-    private var ready: Bool { running && Status.enrolled && Status.sudoActive }
+    private var terminalReady: Bool { running && enrolled && sudoEnabled }
+    private var activeCount: Int { [lockScreenEnabled, terminalReady].filter { $0 }.count }
+    private var accent: Color { activeCount > 0 && enrolled ? Brand.green : .orange }
     private var label: String {
+        if !enrolled { return L("menu.status.noface") }
+        if activeCount == 2 { return L("menu.status.ready") }
+        if activeCount == 1 { return L("menu.status.partial") }
         if !running { return L("menu.status.stopped") }
-        if !Status.enrolled { return L("menu.status.noface") }
-        if !Status.sudoActive { return L("menu.status.nosudo") }
-        return L("menu.status.ready")
+        return L("menu.status.setup")
+    }
+
+    private func capability(_ title: String, symbol: String, ready: Bool) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: symbol)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(ready ? Brand.green : Color.secondary)
+                .frame(width: 18)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(title)
+                    .font(.system(size: 11, weight: .medium))
+                    .lineLimit(1)
+                Text(ready ? L("menu.capability.ready") : L("menu.capability.setup"))
+                    .font(.system(size: 10))
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     var body: some View {
-        HStack(spacing: 11) {
-            if let img = Brand.logo() {
-                Image(nsImage: img).resizable().frame(width: 34, height: 34)
-            }
-            VStack(alignment: .leading, spacing: 1) {
-                Text("Mugshot").font(.system(size: 14, weight: .bold))
-                HStack(spacing: 5) {
-                    Circle().fill(ready ? Brand.green : Color.orange)
-                        .frame(width: 7, height: 7)
-                    Text(label)
-                        .font(.system(size: 11)).foregroundStyle(.secondary)
+        VStack(alignment: .leading, spacing: 11) {
+            HStack(spacing: 11) {
+                if let img = Brand.logo() {
+                    Image(nsImage: img)
+                        .resizable()
+                        .frame(width: 36, height: 36)
                 }
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Mugshot").font(.system(size: 15, weight: .bold))
+                    HStack(spacing: 5) {
+                        Circle().fill(accent).frame(width: 7, height: 7)
+                        Text(label)
+                            .font(.system(size: 11))
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
+                }
+                Spacer()
             }
-            Spacer()
+
+            Divider().opacity(0.7)
+
+            HStack(spacing: 12) {
+                capability(L("menu.capability.lock"), symbol: "lock.fill",
+                           ready: lockScreenEnabled)
+                Divider().frame(height: 30)
+                capability(L("menu.capability.terminal"), symbol: "terminal.fill",
+                           ready: terminalReady)
+            }
         }
-        .padding(.horizontal, 14).padding(.vertical, 10).frame(width: 240)
+        .padding(.leading, 17)
+        .padding(.trailing, 14)
+        .padding(.vertical, 12)
+        .frame(width: 282, height: 112)
+        .overlay(alignment: .leading) {
+            Capsule().fill(accent).frame(width: 3, height: 82).padding(.leading, 4)
+        }
     }
 }
 
 // ---------- contrôleur principal ----------
-final class AppController: NSObject, NSApplicationDelegate, NSWindowDelegate {
+final class AppController: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDelegate {
     let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
     let daemon = DaemonController()
+    let lockScreenUnlock = LockScreenUnlockCoordinator()
     let enroll = EnrollController()
     // Auto-update : démarre le vérificateur (check périodique via SUEnableAutomaticChecks).
     let updater = SPUStandardUpdaterController(startingUpdater: true,
@@ -84,7 +128,11 @@ final class AppController: NSObject, NSApplicationDelegate, NSWindowDelegate {
     var settingsWC: NSWindowController?
 
     func applicationDidFinishLaunching(_ n: Notification) {
-        warnIfRunningFromAnUnstableLocation()
+        guard warnIfRunningFromAnUnstableLocation() else {
+            AppController.suppressQuitWarning = true
+            NSApp.terminate(nil)
+            return
+        }
         daemon.onExit = { [weak self] in self?.refresh() }
         if let b = statusItem.button {
             if let p = Bundle.main.path(forResource: "menubar-icon", ofType: "png"),
@@ -98,6 +146,7 @@ final class AppController: NSObject, NSApplicationDelegate, NSWindowDelegate {
         }
         daemon.env = Settings.shared.env
         daemon.start()
+        lockScreenUnlock.start()
         refresh()
 
         // Auto-inscription au démarrage (une seule fois) : l'app + le daemon se
@@ -106,7 +155,7 @@ final class AppController: NSObject, NSApplicationDelegate, NSWindowDelegate {
             let key = "faceid.autoLoginRegistered"
             if !UserDefaults.standard.bool(forKey: key) {
                 try? SMAppService.mainApp.register()
-                UserDefaults.standard.set(true, forKey: key)
+                UserDefaults.standard.set(SMAppService.mainApp.status == .enabled, forKey: key)
             }
         }
 
@@ -116,6 +165,9 @@ final class AppController: NSObject, NSApplicationDelegate, NSWindowDelegate {
         // l'utilisateur serait au contraire déplacé. `launchIsDefaultUserInfoKey`
         // distingue précisément les deux cas.
         let userLaunched = n.userInfo?[NSApplication.launchIsDefaultUserInfoKey] as? Bool ?? true
+        if CommandLine.arguments.contains("--setup") || (userLaunched && !Status.enrolled) {
+            UserDefaults.standard.set(true, forKey: LockScreenSetupFlow.pendingKey)
+        }
         if userLaunched {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
                 // Sans visage enrôlé, l'enrôlement est la seule chose à faire : on y va
@@ -134,7 +186,10 @@ final class AppController: NSObject, NSApplicationDelegate, NSWindowDelegate {
         }
     }
 
-    func applicationWillTerminate(_ n: Notification) { daemon.stop() }
+    func applicationWillTerminate(_ n: Notification) {
+        lockScreenUnlock.stop()
+        daemon.stop()
+    }
 
     /// Quitter Mugshot arrête le moteur, donc `sudo` redemande le mot de passe — sans
     /// que rien ne le dise. Le moteur doit rester un processus enfant de l'app : lancé
@@ -192,11 +247,12 @@ final class AppController: NSObject, NSApplicationDelegate, NSWindowDelegate {
     /// and settings behave, but the privileged helper gets registered from a path that
     /// moves or disappears, and sudo then quietly falls back to the password. Say so
     /// before the user spends time setting things up.
-    private func warnIfRunningFromAnUnstableLocation() {
+    private func warnIfRunningFromAnUnstableLocation() -> Bool {
         let path = Bundle.main.bundleURL.resolvingSymlinksInPath().path
         let inApplications = path.hasPrefix("/Applications/")
             || path.hasPrefix(NSHomeDirectory() + "/Applications/")
-        guard !inApplications else { return }
+        guard !inApplications else { return true }
+        if CommandLine.arguments.contains("--allow-development-location") { return true }
 
         let onReadOnlyImage = path.hasPrefix("/Volumes/")
         let a = NSAlert()
@@ -214,6 +270,8 @@ final class AppController: NSObject, NSApplicationDelegate, NSWindowDelegate {
             NSWorkspace.shared.activateFileViewerSelecting([Bundle.main.bundleURL])
         default: break
         }
+        // Do not start another daemon or request TCC permissions for this copy.
+        return false
     }
 
     /// Copie le bundle dans /Applications, relance depuis là, et se termine. La copie
@@ -244,54 +302,103 @@ final class AppController: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     func buildMenu(running: Bool) {
         let m = NSMenu()
+        m.delegate = self
+        populateMenu(m, running: running)
+        statusItem.menu = m
+    }
+
+    /// Les autorisations peuvent changer dans Réglages Système pendant que Mugshot
+    /// tourne. Recomposer juste avant l'affichage empêche le menu de mentir sur l'état.
+    func menuWillOpen(_ menu: NSMenu) {
+        populateMenu(menu, running: daemon.isRunning)
+    }
+
+    private func populateMenu(_ m: NSMenu, running: Bool) {
+        m.removeAllItems()
+        let enrolled = Status.enrolled
+        let lockScreenReady = enrolled
+            && Settings.shared.screenUnlockEnabled
+            && LoginPasswordStore.isConfigured
+            && LockScreenAccessibility.isTrusted
 
         let header = NSMenuItem()
-        let hv = NSHostingView(rootView: MenuHeader(running: running))
-        hv.frame = NSRect(x: 0, y: 0, width: 240, height: 54)
+        let hv = NSHostingView(rootView: MenuHeader(
+            running: running,
+            enrolled: enrolled,
+            sudoEnabled: Status.sudoActive,
+            lockScreenEnabled: lockScreenReady
+        ))
+        hv.frame = NSRect(x: 0, y: 0, width: 282, height: 112)
         header.view = hv
         m.addItem(header)
         m.addItem(.separator())
 
-        // « Ouvrir » en premier : c'est l'action attendue quand on déroule le menu.
-        m.addItem(item(L("menu.open"), #selector(openSettings), "o"))
-        m.addItem(item(Status.enrolled ? L("menu.enroll.reenroll") : L("menu.enroll.setup"),
-                       #selector(openOnboarding), "f"))
+        m.addItem(item(L("menu.open"), #selector(openSettings), "o", "gearshape"))
+        if enrolled {
+            m.addItem(item(L("menu.test"), #selector(testRecognition), "", "faceid"))
+            m.addItem(item(L("set.face.append"), #selector(addAppearance), "",
+                           "person.crop.circle.badge.plus"))
+        } else {
+            m.addItem(item(L("menu.enroll.setup"), #selector(openOnboarding), "f", "faceid"))
+        }
 
-        // Réparation, pas interrupteur. Le menu proposait « Arrêter le service », qui
-        // coupait Face ID pour sudo d'un clic sans que rien ne le dise.
         if !running {
             m.addItem(.separator())
-            m.addItem(item(L("menu.restart"), #selector(startDaemon)))
+            m.addItem(item(L("menu.restart"), #selector(startDaemon), "",
+                           "arrow.clockwise.circle"))
         }
 
         m.addItem(.separator())
+
+        let login = item(L("menu.login"), #selector(toggleLogin), "", "power")
+        login.state = loginEnabled ? .on : .off
+        m.addItem(login)
 
         // Item géré par Sparkle (activation/désactivation auto pendant un check).
         let upd = NSMenuItem(title: L("menu.update"),
                              action: #selector(SPUStandardUpdaterController.checkForUpdates(_:)),
                              keyEquivalent: "")
         upd.target = updater
+        upd.image = menuSymbol("arrow.triangle.2.circlepath")
         m.addItem(upd)
 
         m.addItem(.separator())
-        let login = item(L("menu.login"), #selector(toggleLogin))
-        login.state = loginEnabled ? .on : .off
-        m.addItem(login)
-
-        m.addItem(.separator())
-        m.addItem(item(L("menu.quit"), #selector(quit), "q"))
-
-        statusItem.menu = m
+        m.addItem(item(L("menu.quit"), #selector(quit), "q", "xmark.circle"))
     }
 
-    func item(_ title: String, _ sel: Selector, _ key: String = "") -> NSMenuItem {
+    private func menuSymbol(_ name: String) -> NSImage? {
+        let image = NSImage(systemSymbolName: name, accessibilityDescription: nil)
+        image?.isTemplate = true
+        return image
+    }
+
+    func item(_ title: String, _ sel: Selector, _ key: String = "",
+              _ symbol: String? = nil) -> NSMenuItem {
         let i = NSMenuItem(title: title, action: sel, keyEquivalent: key)
         i.target = self
+        if let symbol { i.image = menuSymbol(symbol) }
         return i
     }
 
     // ---------- fenêtres ----------
     @objc func openOnboarding() { openEnrollment(appending: false) }
+    @objc func addAppearance() { openEnrollment(appending: true) }
+
+    @objc func testRecognition() {
+        DispatchQueue.global(qos: .userInitiated).async {
+            let result = Run.faceid(["verify"], env: Settings.shared.env)
+            let recognized = result.code == 0
+                && result.out.split(whereSeparator: \.isWhitespace).contains("OK")
+            DispatchQueue.main.async {
+                NSApp.activate(ignoringOtherApps: true)
+                let alert = NSAlert()
+                alert.alertStyle = recognized ? .informational : .warning
+                alert.messageText = L("notify.test.title")
+                alert.informativeText = recognized ? L("notify.test.ok") : L("notify.test.fail")
+                alert.runModal()
+            }
+        }
+    }
 
     func openEnrollment(appending: Bool) {
         enroll.reset(appending: appending)
@@ -304,7 +411,10 @@ final class AppController: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 // il reste à brancher sudo, et le bandeau d'état le dit avec le bouton
                 // qui le fait. L'écran de fin se contentait d'écrire « vous pouvez
                 // maintenant activer Face ID dans les réglages » et laissait chercher.
-                if Status.enrolled { self.openSettings() }
+                if Status.enrolled {
+                    self.openSettings()
+                    NotificationCenter.default.post(name: .mugshotContinueSetup, object: nil)
+                }
             }
             let win = brandedWindow(width: 440, height: 500, titled: false)
             win.contentView = NSHostingView(rootView: view)
@@ -320,12 +430,24 @@ final class AppController: NSObject, NSApplicationDelegate, NSWindowDelegate {
                                         self?.openEnrollment(appending: appending)
                                     },
                                     onApply: { [weak self] in self?.restartDaemon() })
-            let win = brandedWindow(width: 460, height: 620, titled: true)
+            let win = brandedWindow(width: 460, height: 700, titled: true)
             win.title = "Mugshot"
             win.contentView = NSHostingView(rootView: view)
             settingsWC = NSWindowController(window: win)
         }
         present(settingsWC)
+    }
+
+    // The package sends a URL so an already running app receives setup as well.
+    func application(_ application: NSApplication, open urls: [URL]) {
+        guard urls.contains(where: { $0.scheme == "mugshot" && $0.host == "setup" }) else { return }
+        UserDefaults.standard.set(true, forKey: LockScreenSetupFlow.pendingKey)
+        if Status.enrolled {
+            openSettings()
+            NotificationCenter.default.post(name: .mugshotContinueSetup, object: nil)
+        } else {
+            openOnboarding()
+        }
     }
 
     /// Fermer la fenêtre d'enrôlement arrête le scan. La croix se contentait de

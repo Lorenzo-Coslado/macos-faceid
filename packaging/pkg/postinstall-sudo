@@ -15,18 +15,19 @@
 set -euo pipefail
 
 VOLUME="${3:-/}"
+if [ "$VOLUME" != "/" ]; then
+    echo "Mugshot: sudo setup requires the running startup volume" >&2
+    exit 1
+fi
 APP="${VOLUME%/}/Applications/Mugshot.app"
 INSTALLER="$APP/Contents/Resources/scripts/pam-install-root.sh"
 
-# Le chemin était écrit en dur sur « / ». Une installation sur un autre volume, ou une
-# relocalisation de bundle, le laissait chercher au mauvais endroit et abandonner en
-# silence : l'app arrivait, sudo n'était pas branché, et rien ne le disait.
+# Le script PAM agit sur le système courant : refuser les autres volumes ci-dessus
+# évite de modifier le Mac hôte pendant une installation hors ligne. Un bundle
+# manquant doit aussi faire échouer cette étape plutôt que simuler un succès.
 if [ ! -f "$INSTALLER" ]; then
     echo "Mugshot: $INSTALLER introuvable; sudo laissé inchangé" >&2
-    # Sortie 0 volontaire : l'app est installée et utilisable, seule l'intégration sudo
-    # manque. Faire échouer le paquet entier pour ça serait disproportionné, et l'app
-    # sait activer sudo elle-même depuis ses réglages.
-    exit 0
+    exit 1
 fi
 
 /bin/bash "$INSTALLER"

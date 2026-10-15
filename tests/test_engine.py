@@ -22,7 +22,7 @@ sys.path.insert(0, str(ROOT))
 import numpy as np                                          # noqa: E402
 import cv2                                                  # noqa: E402
 
-from faceid import config, daemon, recognizer               # noqa: E402
+from faceid import config, daemon, recognizer, verify_client  # noqa: E402
 
 FAILURES = []
 
@@ -60,6 +60,14 @@ def test_warmup():
     daemon._adaptive_warmup(cap)
     check("garde le plafond quand elle bouge encore",
           cap.reads == config.CAMERA_WARMUP_FRAMES, f"{cap.reads} frames")
+
+
+def test_verify_client_mode():
+    print("client de vérification")
+    check("VERIFY reste le mode par défaut",
+          verify_client.command_for_args([]) == b"VERIFY\n")
+    check("--lock sélectionne VERIFY_LOCK",
+          verify_client.command_for_args(["--lock"]) == b"VERIFY_LOCK\n")
 
 
 # ---------------------------------------------------------------------- annulation
@@ -317,7 +325,7 @@ def test_socket():
 
 
 def main():
-    for test in (test_warmup, test_cancel, test_no_face_abort,
+    for test in (test_warmup, test_verify_client_mode, test_cancel, test_no_face_abort,
                  test_present_face_is_never_cut_short,
                  test_enroll_is_bounded, test_append,
                  test_flags, test_i18n, test_socket):
