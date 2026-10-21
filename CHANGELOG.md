@@ -6,6 +6,24 @@ All notable changes to this project are documented here. The format is based on
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-10-21
+
+### Added
+
+- Face enrollment expands from the camera notch with a live, mirrored camera
+  preview and 72 green ticks showing the head angles actually captured.
+- Two guided scans cover eight head directions, with a Continue step between scans
+  and positioning instructions when the face is too close, too far away or off-center.
+  Capture pauses when multiple faces are visible. Camera frames stay in memory.
+
+### Fixed
+
+- Large camera events are decoded across pipe reads without losing preview frames
+  or the final completion event. Closing enrollment or pressing Escape stops capture,
+  and stale events from an earlier session cannot affect a new scan.
+- Enrollment uses the selected camera and preserves existing face data when a scan
+  is interrupted. Adding an appearance retains the previously enrolled samples.
+
 ## [1.2.0] - 2026-10-15
 
 ### Added

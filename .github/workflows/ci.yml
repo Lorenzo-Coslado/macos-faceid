@@ -50,6 +50,12 @@ jobs:
       - name: Engine behaviour tests
         run: ./.venv/bin/python tests/test_engine.py
 
+      - name: Guided enrollment and video stream tests
+        run: |
+          ./.venv/bin/python tests/test_enrollment.py
+          swiftc menubar/EnrollmentStream.swift tests/enrollment_stream.swift -o /tmp/enrollment-stream
+          /tmp/enrollment-stream
+
       - name: Translations are complete
         run: bash scripts/check-i18n.sh
 
@@ -71,7 +77,7 @@ jobs:
       - name: Compile menu bar app
         run: |
           swiftc -O -swift-version 5 -target "$MUGSHOT_SWIFT_TARGET" -o /tmp/Mugshot \
-            menubar/Branding.swift menubar/Onboarding.swift \
+            menubar/Branding.swift menubar/Onboarding.swift menubar/EnrollmentStream.swift \
             menubar/SettingsView.swift menubar/SetupFlow.swift \
             menubar/SetupSheet.swift menubar/Uninstaller.swift \
             menubar/HelperManager.swift menubar/LoginPasswordStore.swift \

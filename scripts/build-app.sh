@@ -98,6 +98,7 @@ swiftc -O -swift-version 5 \
   -o "$APP/Contents/MacOS/Mugshot" \
   "$HERE/menubar/Branding.swift" \
   "$HERE/menubar/Onboarding.swift" \
+  "$HERE/menubar/EnrollmentStream.swift" \
   "$HERE/menubar/SettingsView.swift" \
   "$HERE/menubar/SetupFlow.swift" \
   "$HERE/menubar/SetupSheet.swift" \

@@ -403,7 +403,12 @@ final class AppController: NSObject, NSApplicationDelegate, NSWindowDelegate, NS
     func openEnrollment(appending: Bool) {
         enroll.reset(appending: appending)
         if onboardingWC == nil {
-            let view = OnboardingView(c: enroll) { [weak self] in
+            guard let screen = NSScreen.screens.first(where: { $0.safeAreaInsets.top > 0 })
+                    ?? NSScreen.main ?? NSScreen.screens.first else { return }
+            let geometry = EnrollmentIslandGeometry(screen: screen)
+            let view = OnboardingView(c: enroll, attachment: geometry.attachment, onCancel: { [weak self] in
+                self?.onboardingWC?.close()
+            }) { [weak self] in
                 guard let self else { return }
                 self.onboardingWC?.close()
                 self.refresh()
@@ -416,12 +421,23 @@ final class AppController: NSObject, NSApplicationDelegate, NSWindowDelegate, NS
                     NotificationCenter.default.post(name: .mugshotContinueSetup, object: nil)
                 }
             }
-            let win = brandedWindow(width: 440, height: 500, titled: false)
+            let win = EnrollmentPanel(contentRect: geometry.frame, styleMask: [.borderless],
+                                      backing: .buffered, defer: false)
+            win.isOpaque = false
+            win.backgroundColor = .clear
+            win.hasShadow = true
+            win.level = .statusBar
+            win.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+            win.hidesOnDeactivate = false
+            win.isReleasedWhenClosed = false
+            win.title = L("onb.title")
             win.contentView = NSHostingView(rootView: view)
             win.delegate = self
             onboardingWC = NSWindowController(window: win)
         }
-        present(onboardingWC)
+        NSApp.activate(ignoringOtherApps: true)
+        onboardingWC?.showWindow(nil)
+        onboardingWC?.window?.makeKeyAndOrderFront(nil)
     }
 
     @objc func openSettings() {
@@ -456,6 +472,8 @@ final class AppController: NSObject, NSApplicationDelegate, NSWindowDelegate, NS
     func windowWillClose(_ n: Notification) {
         guard (n.object as? NSWindow) === onboardingWC?.window else { return }
         enroll.cancel()
+        // Recreate the island on the current display, including its opening animation.
+        onboardingWC = nil
     }
 
     func brandedWindow(width: CGFloat, height: CGFloat, titled: Bool) -> NSWindow {

@@ -58,7 +58,7 @@ echo "══ 3/6  Compilation de l'app Swift ══"
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$RES"
 swiftc -O -swift-version 5 -target "$MUGSHOT_SWIFT_TARGET" -o "$APP/Contents/MacOS/Mugshot" \
-  menubar/Branding.swift menubar/Onboarding.swift menubar/SettingsView.swift menubar/SetupFlow.swift menubar/SetupSheet.swift menubar/Uninstaller.swift \
+  menubar/Branding.swift menubar/Onboarding.swift menubar/EnrollmentStream.swift menubar/SettingsView.swift menubar/SetupFlow.swift menubar/SetupSheet.swift menubar/Uninstaller.swift \
   menubar/HelperManager.swift menubar/LoginPasswordStore.swift menubar/LockScreenUnlockCoordinator.swift menubar/LockScreenSetup.swift \
   helpertool/HelperProtocol.swift menubar/FaceIDApp.swift \
   -framework AppKit -framework SwiftUI -framework AVFoundation -framework ServiceManagement -framework Security \
