@@ -6,6 +6,94 @@ All notable changes to this project are documented here. The format is based on
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-10-21
+
+### Added
+
+- Face enrollment expands from the camera notch with a live, mirrored camera
+  preview and 72 green ticks showing the head angles actually captured.
+- Two guided scans cover eight head directions, with a Continue step between scans
+  and positioning instructions when the face is too close, too far away or off-center.
+  Capture pauses when multiple faces are visible. Camera frames stay in memory.
+
+### Fixed
+
+- Large camera events are decoded across pipe reads without losing preview frames
+  or the final completion event. Closing enrollment or pressing Escape stops capture,
+  and stale events from an earlier session cannot affect a new scan.
+- Enrollment uses the selected camera and preserves existing face data when a scan
+  is interrupted. Adding an appearance retains the previously enrolled samples.
+
+## [1.2.0] - 2026-10-15
+
+### Added
+
+- Optional face unlock for an already logged-in, locked session, with a continuous
+  camera, Accessibility and Mac login-password setup. FileVault and first login
+  after a restart still require normal authentication.
+- Fusion: a taller animated HUD attached to the camera notch, with scanning,
+  recognition and password-fallback states. Displays without a notch use a capsule.
+- Reusable macOS documentation previews and new README animations and images.
+
+### Fixed
+
+- Local rebuilds now keep a persistent signing certificate instead of invalidating
+  macOS consent every time a HUD resource changes. Migration to Developer ID is
+  explicit; compatible updates preserve the application's permission identity.
+- Signature resources remain readable after Installer changes their owner to root.
+  Packages validate the installed signature as the logged-in user before setup.
+- Lock-screen password events target the genuine Apple loginwindow process. Session,
+  feature state and permissions are rechecked after Keychain retrieval; changing
+  users or unlocking concurrently cancels delivery instead of typing into another app.
+- Stale permission dialogs no longer repeat on every configuration attempt. Setup
+  resumes after restart and detects camera and Accessibility approvals automatically.
+- Packages stop the previous app, install into Applications, verify the exact
+  executable and open that copy rather than a development URL handler.
+
+### Release tooling
+
+- Distribution verifies Developer ID, hardened runtime, timestamps, notarization,
+  Gatekeeper, package payload permissions and Sparkle signatures against the embedded
+  public key. Releases are tied to a clean source commit with successful CI.
+- Release preparation creates a GitHub draft. Existing notarized artifacts can be
+  resumed without rebuilding, and public releases cannot be silently overwritten.
+- DMG layout is generated without opening or automating Finder.
+
+### Fixed
+
+- A `sudo` you did not look at cost eight seconds of a saturated core. The recognition
+  loop spent its whole budget even when the camera had not seen a single face — the
+  common case, since you type the command and keep reading your screen. Measured on an
+  M-series Air, a scan that runs to its budget burns 7.55 s of CPU over 162 frames,
+  webcam and capsule on top. It now gives up after three seconds without any face
+  (`FACEID_NO_FACE_ABORT`), which is where the password prompt was heading anyway; the
+  full budget still applies as soon as somebody is actually detected.
+- Enrolment held the camera indefinitely. Its capture loop had no time budget at all,
+  unlike the verification loop, so an enrolment nobody completed kept the webcam and a
+  core busy until the end of the session. It now stops after a minute
+  (`FACEID_ENROLL_TIMEOUT`) and reports why instead of waiting forever.
+- Closing the enrolment window left the scan running behind it. `cancel()` existed but
+  was never called from anywhere, and the window merely hides itself, so the engine
+  went on filming with the green light on and nothing to say so. Closing the window now
+  cancels the scan, and reopening enrolment no longer starts a second one alongside the
+  first.
+
+### Changed
+
+- The build now installs from `requirements-lock.txt` instead of the version ranges.
+  Every build used to take whatever PyPI served that day, so two builds of the same
+  Mugshot version did not necessarily contain the same OpenCV. For something that
+  guards `sudo`, what goes into the bundle should be a decision, not a date.
+- `scripts/download-models.sh` verifies the SHA-256 of both ONNX models. They are
+  pulled from the zoo's `main` branch, where a file can change under the same name —
+  and `COSINE_THRESHOLD` is calibrated for this exact SFace model, as are the
+  `embeddings.npy` people already enrolled. A silent swap would have moved the
+  threshold's meaning with nothing to catch it.
+- Dependabot no longer proposes OpenCV 5. Measured against 4.14, SFace itself is
+  numerically identical (cosine 1.000000 on fixed inputs), but `alignCrop` changed
+  interpolation — 62 % of the pixels in the 112×112 crop differ. The move is a
+  deliberate pass with a threshold re-measured on real faces, not an automated bump.
+
 ## [1.1.1] - 2026-08-18
 
 ### Fixed

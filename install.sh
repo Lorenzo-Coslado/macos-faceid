@@ -17,15 +17,14 @@ echo "════════════════════════�
 # 1) virtualenv, dependencies, models, native helpers, selftest
 bash scripts/setup.sh
 
-# 2) app bundle (icon, translations, signed bundle -> /Applications)
+# 2) staged app + verified package; administrator authentication happens in Installer
 bash scripts/build-app.sh
 
 echo
-echo "✅ Installed. Mugshot is in /Applications."
-echo "   Opening it…"
-open /Applications/Mugshot.app || true
+echo "✅ Package ready: $DIR/build/Mugshot-dev.pkg"
+echo "   Open this package to install Mugshot; it opens setup after installation."
 echo
 echo "Next, in the app window that opens:"
 echo "  1. Register your face."
-echo "  2. Enable Face ID for sudo, and follow the two macOS approvals."
+echo "  2. Complete the guided permissions for optional lock-screen unlock."
 echo "  3. Try it:  sudo -k && sudo true   (look at the camera)"

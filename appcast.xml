@@ -3,13 +3,13 @@
     <channel>
         <title>Mugshot</title>
         <item>
-            <title>1.1.1</title>
-            <pubDate>Tue, 18 Aug 2026 03:15:43 +0200</pubDate>
-            <sparkle:version>6</sparkle:version>
-            <sparkle:shortVersionString>1.1.1</sparkle:shortVersionString>
+            <title>1.3.0</title>
+            <pubDate>Wed, 21 Oct 2026 19:34:43 +0200</pubDate>
+            <sparkle:version>10</sparkle:version>
+            <sparkle:shortVersionString>1.3.0</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
             <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <enclosure url="https://github.com/Lorenzo-Coslado/macos-faceid/releases/download/v1.1.1/Mugshot.dmg" length="92454957" type="application/octet-stream" sparkle:edSignature="O7UD9hyYnjZtura7fV9RELUSfeixvbR3jy0UGo+kOL6yP50w7PE150WlZbOAfxG2ci0FS7JKRp30Qe2oz5UEBQ=="/>
+            <enclosure url="https://github.com/Lorenzo-Coslado/macos-faceid/releases/download/v1.3.0/Mugshot.dmg" length="92611374" type="application/octet-stream" sparkle:edSignature="QmUMrJidpFrT1xCz+pBfQr4VfKvTAalvANNp5lCP5zoluOY81jRFB+dYF2zuMwRg84/38cLwGRdA5rDm2zP0Dg=="/>
         </item>
     </channel>
 </rss>

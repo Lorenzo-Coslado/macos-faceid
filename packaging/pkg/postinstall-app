@@ -1,0 +1,67 @@
+#!/bin/bash
+# Run user consent in the console user's session, never in the installer's root context.
+set -euo pipefail
+export PATH=/usr/bin:/bin:/usr/sbin:/sbin
+
+[ "${3:-/}" = "/" ] || { echo "Mugshot requires the running startup volume" >&2; exit 1; }
+APP=/Applications/Mugshot.app
+[ -d "$APP" ] || { echo "Mugshot: installed app is missing" >&2; exit 1; }
+EXPECTED_FILE="$(dirname "$0")/expected-app-sha256"
+[ -f "$EXPECTED_FILE" ] || { echo "Mugshot: missing payload verification metadata" >&2; exit 1; }
+read -r EXPECTED_HASH < "$EXPECTED_FILE"
+ACTUAL_HASH="$(/usr/bin/shasum -a 256 "$APP/Contents/MacOS/Mugshot" | /usr/bin/awk '{print $1}')"
+[ "$ACTUAL_HASH" = "$EXPECTED_HASH" ] || {
+    echo "Mugshot: Installer kept a different app version; refusing to open stale setup" >&2
+    exit 1
+}
+/usr/bin/codesign --verify --deep --strict "$APP"
+
+CONSOLE_UID="$(/usr/bin/stat -f %u /dev/console)"
+CONSOLE_USER="$(/usr/bin/stat -f %Su /dev/console)"
+case "$CONSOLE_USER" in
+    root|loginwindow|_mbsetupuser|'')
+        echo "Mugshot: no logged-in user; setup will open on first manual launch"
+        exit 0 ;;
+esac
+
+# A root-only verification cannot catch a root:600 CodeResources file. Validate
+# from the real user's session before opening the app or accepting this install.
+/bin/launchctl asuser "$CONSOLE_UID" /usr/bin/sudo -u "#$CONSOLE_UID" \
+    /usr/bin/codesign --verify --deep --strict "$APP"
+
+# Compare actual requirements rather than version numbers or certificate labels.
+# Rebuilding with the same persistent certificate must never revoke the grant.
+RESET_GRANT=false
+PREVIOUS="$(dirname "$0")/previous-app-requirement"
+if [ -s "$PREVIOUS" ]; then
+    read -r OLD_REQUIREMENT < "$PREVIOUS"
+    if ! /usr/bin/codesign --verify --strict -R "=$OLD_REQUIREMENT" "$APP"; then
+        RESET_GRANT=true
+    fi
+elif /usr/bin/codesign -dv "$APP" 2>&1 | /usr/bin/grep -q '^Signature=adhoc'; then
+    RESET_GRANT=true
+fi
+if [ "$RESET_GRANT" = true ]; then
+    # A running Settings window can write its cached old requirement back into TCC
+    # when the user toggles the row. Close it only for an incompatible migration.
+    STOP_RESULT=0
+    /bin/launchctl asuser "$CONSOLE_UID" /usr/bin/sudo -u "#$CONSOLE_UID" \
+        /usr/bin/pkill -TERM -x 'System Settings' || STOP_RESULT=$?
+    if [ "$STOP_RESULT" -gt 1 ]; then
+        echo "Mugshot: quit System Settings before approving the new application" >&2
+    fi
+    for SERVICE in Accessibility Camera; do
+        if ! /bin/launchctl asuser "$CONSOLE_UID" /usr/bin/sudo -u "#$CONSOLE_UID" \
+            /usr/bin/tccutil reset "$SERVICE" com.lorenzo.Mugshot; then
+            echo "Mugshot: could not clear the old $SERVICE identity; quit System Settings and approve the current app" >&2
+        fi
+    done
+fi
+
+# Address the installed bundle directly. A shared URL handler may be registered to
+# a development copy elsewhere and launch it alongside the installed application.
+if ! /bin/launchctl asuser "$CONSOLE_UID" \
+    /usr/bin/sudo -u "#$CONSOLE_UID" /usr/bin/open -a "$APP" --args --setup; then
+    # A headless install still has a usable app. First launch detects unenrolled users.
+    echo "Mugshot: could not open setup; open Mugshot from Applications to continue" >&2
+fi

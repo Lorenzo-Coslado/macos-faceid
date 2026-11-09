@@ -3,7 +3,7 @@
 <head><meta charset="utf-8"></head>
 <body style="font-family: -apple-system, sans-serif; font-size: 13px; line-height: 1.5;">
 
-<p>Mugshot unlocks <code>sudo</code> with your face. Recognition runs entirely on this
+<p>Mugshot unlocks <code>sudo</code> and optionally your locked session with your face. Recognition runs entirely on this
 Mac, and nothing ever leaves it.</p>
 
 <p>This installer asks for your password <b>once</b>, and uses it to put Mugshot in your
@@ -12,6 +12,14 @@ hand instead costs two separate macOS permissions.</p>
 
 <p>On the next screen you can clear <b>Enable Face ID for sudo</b> if you would rather
 decide later — the app can turn it on itself afterwards.</p>
+
+<p>Mugshot opens after the app is installed and guides you through camera access,
+face registration and optional lock-screen setup. Camera and Accessibility approval
+remain yours to grant; the installer password is never saved as your login password.</p>
+
+<p>A first update from an older local test build may require fresh permission.
+The installer closes System Settings during this migration so the new approval
+applies to the current app. Later updates with the same signing certificate preserve it.</p>
 
 <p><b>You cannot get locked out.</b> If recognition fails, if the app is closed, or if you
 delete it, <code>sudo</code> asks for your password exactly as before.</p>
