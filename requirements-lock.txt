@@ -11,7 +11,7 @@
 #   ./.venv/bin/pip freeze > requirements-lock.txt   (puis remettre cet en-tête)
 altgraph==0.17.5
 macholib==1.16.4
-numpy==2.5.1
+numpy==2.5.4
 opencv-python-headless==4.14.0.94
 packaging==26.2
 pyinstaller==6.22.3
