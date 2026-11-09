@@ -33,7 +33,8 @@ jobs:
           ./.venv/bin/pip install --upgrade pip
           # Depuis le lock, pas depuis les fourchettes : c'est la composition exacte
           # du bundle qu'on teste et qu'on livre, pas ce que PyPI sert aujourd'hui.
-          ./.venv/bin/pip install -r requirements-lock.txt
+          # Vérifie aussi que les versions verrouillées respectent les fourchettes.
+          ./.venv/bin/pip install -r requirements-lock.txt -r requirements.txt
 
       - name: Download models
         run: bash scripts/download-models.sh
@@ -123,7 +124,8 @@ jobs:
           ./.venv/bin/pip install --upgrade pip
           # Depuis le lock, pas depuis les fourchettes : c'est la composition exacte
           # du bundle qu'on teste et qu'on livre, pas ce que PyPI sert aujourd'hui.
-          ./.venv/bin/pip install -r requirements-lock.txt
+          # Vérifie aussi que les versions verrouillées respectent les fourchettes.
+          ./.venv/bin/pip install -r requirements-lock.txt -r requirements.txt
 
       - name: Download models
         run: bash scripts/download-models.sh
