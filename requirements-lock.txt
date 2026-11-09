@@ -1,0 +1,20 @@
+# Versions exactes du moteur embarqué dans Mugshot.app.
+#
+# requirements.txt dit l'intention (des fourchettes) ; ce fichier dit ce qui est
+# réellement livré. Sans lui, chaque build prenait ce que PyPI servait ce jour-là :
+# deux constructions de la même version de Mugshot ne contenaient pas forcément le
+# même OpenCV — pour une app qui garde `sudo`, la composition du bundle doit être
+# une décision, pas une date.
+#
+# Régénérer après un changement volontaire de dépendance :
+#   ./.venv/bin/pip install -r requirements.txt --upgrade
+#   ./.venv/bin/pip freeze > requirements-lock.txt   (puis remettre cet en-tête)
+altgraph==0.17.5
+macholib==1.16.4
+numpy==2.5.1
+opencv-python-headless==4.14.0.94
+packaging==26.2
+pyinstaller==6.22.2
+pyinstaller-hooks-contrib==2026.6
+setuptools==83.0.0
+wheel==0.47.0

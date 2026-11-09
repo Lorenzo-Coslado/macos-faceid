@@ -29,6 +29,7 @@ i18n/
 # --- Données locales / temporaires ---
 *.log
 .DS_Store
+.claude/
 
 # --- Expérimental : déverrouillage écran (non supporté, cf. LOCK-SCREEN-PLAN.md) ---
 # Bloqué par macOS (SIP + restrictions Apple). Gardé en local, hors du dépôt public.

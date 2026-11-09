@@ -22,7 +22,7 @@ sys.path.insert(0, str(ROOT))
 import numpy as np                                          # noqa: E402
 import cv2                                                  # noqa: E402
 
-from faceid import config, daemon, recognizer               # noqa: E402
+from faceid import config, daemon, recognizer, verify_client  # noqa: E402
 
 FAILURES = []
 
@@ -60,6 +60,14 @@ def test_warmup():
     daemon._adaptive_warmup(cap)
     check("garde le plafond quand elle bouge encore",
           cap.reads == config.CAMERA_WARMUP_FRAMES, f"{cap.reads} frames")
+
+
+def test_verify_client_mode():
+    print("client de vérification")
+    check("VERIFY reste le mode par défaut",
+          verify_client.command_for_args([]) == b"VERIFY\n")
+    check("--lock sélectionne VERIFY_LOCK",
+          verify_client.command_for_args(["--lock"]) == b"VERIFY_LOCK\n")
 
 
 # ---------------------------------------------------------------------- annulation
@@ -108,6 +116,96 @@ def test_cancel():
         check("la caméra est relâchée", fake.released)
     finally:
         cv2.VideoCapture = original
+
+
+# ------------------------------------------------------------- absence de visage
+def test_no_face_abort():
+    print("abandon quand personne n'est devant la caméra")
+    fake = SlowCapture()
+    original = cv2.VideoCapture
+    cv2.VideoCapture = lambda *a, **k: fake
+    saved = config.VERIFY_NO_FACE_ABORT_S
+    config.VERIFY_NO_FACE_ABORT_S = 0.5
+    try:
+        d = daemon.Daemon.__new__(daemon.Daemon)
+        d.enrolled = np.random.rand(4, 128).astype(np.float32)
+        d.enrolled_mtime = 0.0
+        d._mtime = lambda: 0.0
+        d.engine = type("E", (), {"frame_feature": lambda self, f: (None, None)})()
+
+        started = time.time()
+        ok, reason = d._verify_face_camera(timeout=30)
+        elapsed = time.time() - started
+
+        check("il renonce au lieu d'épuiser le budget",
+              not ok and "no-face" in reason, reason)
+        check("sans attendre les 30 s de budget", elapsed < 2.0,
+              f"{elapsed:.2f}s")
+        check("la caméra est relâchée", fake.released)
+    finally:
+        config.VERIFY_NO_FACE_ABORT_S = saved
+        cv2.VideoCapture = original
+
+
+def test_present_face_is_never_cut_short():
+    print("un visage présent n'est jamais coupé par l'abandon")
+    # Le pendant du test précédent : l'abandon ne doit mordre QUE sur l'absence. On
+    # met le délai à une valeur absurde (1 ms) et on présente un visage dès la
+    # première frame ; la reconnaissance doit aboutir malgré tout.
+    fake = SlowCapture()
+    original = cv2.VideoCapture
+    cv2.VideoCapture = lambda *a, **k: fake
+    saved = config.VERIFY_NO_FACE_ABORT_S
+    config.VERIFY_NO_FACE_ABORT_S = 0.001
+    try:
+        enrolled = np.random.rand(1, 128).astype(np.float32)
+        d = daemon.Daemon.__new__(daemon.Daemon)
+        d.enrolled = enrolled
+        d.enrolled_mtime = 0.0
+        d._mtime = lambda: 0.0
+        # Caméra qui montre toujours le visage enrôlé : score = 1.0 à chaque frame.
+        d.engine = type("E", (), {
+            "frame_feature": lambda self, f: (enrolled[0], None)})()
+
+        ok, reason = d._verify_face_camera(timeout=30)
+        check("la reconnaissance aboutit", ok, reason)
+        check("l'abandon ne s'est pas déclenché", "no-face" not in reason, reason)
+        check("elle s'arrête au nombre de correspondances requis",
+              f"frames={config.VERIFY_REQUIRED_MATCHES}" in reason, reason)
+    finally:
+        config.VERIFY_NO_FACE_ABORT_S = saved
+        cv2.VideoCapture = original
+
+
+def test_enroll_is_bounded():
+    print("budget de l'enrôlement")
+    # La boucle de capture n'avait aucune limite de temps : un enrôlement laissé en
+    # plan gardait la caméra et un cœur jusqu'à la fin de la session. On exerce la
+    # vraie boucle, caméra factice à l'appui, plutôt que de relire le source.
+    from faceid import enroll
+
+    fake = SlowCapture()
+    original = cv2.VideoCapture
+    cv2.VideoCapture = lambda *a, **k: fake
+    saved_budget, saved_emit = config.ENROLL_TIMEOUT_S, enroll.emit
+    config.ENROLL_TIMEOUT_S = 0.5
+    events = []
+    enroll.emit = lambda **ev: events.append(ev)
+    started = time.time()
+    try:
+        code = enroll.main()
+    finally:
+        enroll.emit = saved_emit
+        config.ENROLL_TIMEOUT_S = saved_budget
+        cv2.VideoCapture = original
+    elapsed = time.time() - started
+
+    check("la boucle rend la main au lieu d'attendre un visage", code == 1)
+    check("elle dit pourquoi",
+          any(e.get("msg") == "enroll-timeout" for e in events),
+          ", ".join(str(e.get("msg") or e.get("event")) for e in events))
+    check("dans son budget", elapsed < 3.0, f"{elapsed:.2f}s")
+    check("la caméra est relâchée", fake.released)
 
 
 # ------------------------------------------------------------------- apparences
@@ -227,7 +325,9 @@ def test_socket():
 
 
 def main():
-    for test in (test_warmup, test_cancel, test_append,
+    for test in (test_warmup, test_verify_client_mode, test_cancel, test_no_face_abort,
+                 test_present_face_is_never_cut_short,
+                 test_enroll_is_bounded, test_append,
                  test_flags, test_i18n, test_socket):
         test()
     print()

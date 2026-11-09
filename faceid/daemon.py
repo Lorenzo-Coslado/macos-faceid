@@ -162,12 +162,13 @@ class Daemon:
         return "password"
 
     # ---- capsule HUD (Dynamic Island) ----
-    def _hud_start(self):
+    def _hud_start(self, lock_screen=False):
         """Lance la capsule. Retourne (process, event d'annulation)."""
         if not config.HUD_ENABLED or not config.FACEID_HUD.exists():
             return None, None
         try:
-            hud = subprocess.Popen([str(config.FACEID_HUD)],
+            args = [str(config.FACEID_HUD)] + (["--lock"] if lock_screen else [])
+            hud = subprocess.Popen(args,
                                    stdin=subprocess.PIPE, stdout=subprocess.PIPE)
         except OSError as e:
             log(f"hud start error : {e}")
@@ -210,7 +211,7 @@ class Daemon:
     def verify_lock(self):
         # Écran verrouillé : pas de modal, visage direct, budget court.
         # Le HUD (Dynamic Island) est affiché comme sur sudo.
-        hud, cancelled = self._hud_start()
+        hud, cancelled = self._hud_start(lock_screen=True)
         ok, reason = self._verify_face_camera(timeout=config.LOCK_TIMEOUT_S,
                                               cancelled=cancelled)
         self._hud_finish(hud, ok)
@@ -240,12 +241,19 @@ class Daemon:
         best_overall = -1.0
         max_bright = 0.0
         last_frame = None
+        gave_up = False
         t0 = time.time()
         try:
             while (frames < config.VERIFY_MAX_FRAMES
                    and (time.time() - t0) < tmo):
                 if cancelled is not None and cancelled.is_set():
                     return False, f"cancelled frames={frames}"
+                # Personne devant l'objectif : on rend la main au mot de passe plutôt
+                # que de faire tourner le détecteur jusqu'au bout du budget.
+                if (faces_seen == 0
+                        and (time.time() - t0) > config.VERIFY_NO_FACE_ABORT_S):
+                    gave_up = True
+                    break
                 ok, frame = cap.read()
                 if not ok:
                     continue
@@ -276,7 +284,8 @@ class Daemon:
                 pass
         dt = time.time() - t0
         return False, (f"best={best_overall:.3f} frames={frames} "
-                       f"faces={faces_seen} bright={max_bright:.0f} t={dt:.1f}s")
+                       f"faces={faces_seen} bright={max_bright:.0f} t={dt:.1f}s"
+                       + (" no-face" if gave_up else ""))
 
     # ---- Touch ID (helper Swift) ----
     def verify_touch(self):

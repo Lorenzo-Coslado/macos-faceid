@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, 'codex/**']
   pull_request:
     branches: [main]
 
@@ -13,6 +13,7 @@ concurrency:
 env:
   MACOSX_DEPLOYMENT_TARGET: "14.0"
   MUGSHOT_SWIFT_TARGET: arm64-apple-macosx14.0
+  MUGSHOT_SIGN_TRUST_DOMAIN: admin
 
 jobs:
   build:
@@ -29,8 +30,10 @@ jobs:
       - name: Install Python dependencies
         run: |
           python -m venv .venv
-          ./.venv/bin/pip install --upgrade pip wheel
-          ./.venv/bin/pip install -r requirements.txt
+          ./.venv/bin/pip install --upgrade pip
+          # Depuis le lock, pas depuis les fourchettes : c'est la composition exacte
+          # du bundle qu'on teste et qu'on livre, pas ce que PyPI sert aujourd'hui.
+          ./.venv/bin/pip install -r requirements-lock.txt
 
       - name: Download models
         run: bash scripts/download-models.sh
@@ -47,8 +50,20 @@ jobs:
       - name: Engine behaviour tests
         run: ./.venv/bin/python tests/test_engine.py
 
+      - name: Guided enrollment and video stream tests
+        run: |
+          ./.venv/bin/python tests/test_enrollment.py
+          swiftc menubar/EnrollmentStream.swift tests/enrollment_stream.swift -o /tmp/enrollment-stream
+          /tmp/enrollment-stream
+
       - name: Translations are complete
         run: bash scripts/check-i18n.sh
+
+      - name: Permission and installer setup regression tests
+        run: bash scripts/check-lock-screen-setup.sh
+
+      - name: Visual rebuild preserves signing identity
+        run: python3 tests/test_signing_identity.py
 
       - name: Build native helpers
         run: bash scripts/build-helpers.sh
@@ -62,13 +77,16 @@ jobs:
       - name: Compile menu bar app
         run: |
           swiftc -O -swift-version 5 -target "$MUGSHOT_SWIFT_TARGET" -o /tmp/Mugshot \
-            menubar/Branding.swift menubar/Onboarding.swift \
+            menubar/Branding.swift menubar/Onboarding.swift menubar/EnrollmentStream.swift \
             menubar/SettingsView.swift menubar/SetupFlow.swift \
             menubar/SetupSheet.swift menubar/Uninstaller.swift \
-            menubar/HelperManager.swift \
+            menubar/HelperManager.swift menubar/LoginPasswordStore.swift \
+            menubar/LockScreenUnlockCoordinator.swift \
+            menubar/LockScreenSetup.swift \
             helpertool/HelperProtocol.swift menubar/FaceIDApp.swift \
             -framework AppKit -framework SwiftUI \
             -framework AVFoundation -framework ServiceManagement -framework Security \
+            -framework ApplicationServices -framework OpenDirectory \
             -F vendor/sparkle -framework Sparkle \
             -Xlinker -rpath -Xlinker @executable_path/../Frameworks
 
@@ -102,14 +120,19 @@ jobs:
       - name: Install Python dependencies
         run: |
           python -m venv .venv
-          ./.venv/bin/pip install --upgrade pip wheel
-          ./.venv/bin/pip install -r requirements.txt
+          ./.venv/bin/pip install --upgrade pip
+          # Depuis le lock, pas depuis les fourchettes : c'est la composition exacte
+          # du bundle qu'on teste et qu'on livre, pas ce que PyPI sert aujourd'hui.
+          ./.venv/bin/pip install -r requirements-lock.txt
 
       - name: Download models
         run: bash scripts/download-models.sh
 
       - name: Build the standalone bundle
         run: bash scripts/build-standalone.sh
+
+      - name: Bundle stays readable after Installer changes ownership
+        run: python3 scripts/bundle-permissions.py dist/Mugshot.app
 
       - name: Run the frozen engine from the bundle
         run: |
@@ -139,12 +162,31 @@ jobs:
       # qu'il se construit et que l'Installeur accepte sa distribution, sans l'installer.
       - name: Installer package builds
         run: |
-          bash scripts/build-pkg.sh dist/Mugshot.app dist/Mugshot.pkg
+          ALLOW_UNSIGNED_PKG=1 bash scripts/build-pkg.sh dist/Mugshot.app dist/Mugshot.pkg
           installer -pkg dist/Mugshot.pkg -target / -showChoiceChangesXML >/dev/null
           pkgutil --expand dist/Mugshot.pkg /tmp/pkg-check
           test -f /tmp/pkg-check/sudo.pkg/Scripts/postinstall
+          test -f /tmp/pkg-check/app.pkg/Scripts/postinstall
+          test -f /tmp/pkg-check/app.pkg/Scripts/preinstall
+          test -f /tmp/pkg-check/app.pkg/Scripts/expected-app-sha256
+          test ! -f /tmp/pkg-check/sudo.pkg/Scripts/preinstall
+          test ! -f /tmp/pkg-check/sudo.pkg/Scripts/expected-app-sha256
           grep -q 'Applications/Mugshot.app' <(lsbom -p f /tmp/pkg-check/app.pkg/Bom)
+          # Root's successful signature check used to hide a root:600 seal.
+          lsbom /tmp/pkg-check/app.pkg/Bom | grep 'Mugshot.app/Contents/_CodeSignature/CodeResources' | grep -q '100644'
+
+      - name: Root installation remains usable by the ordinary user
+        run: |
+          sudo installer -pkg dist/Mugshot.pkg -target /
+          codesign --verify --deep --strict /Applications/Mugshot.app
+          python3 scripts/bundle-permissions.py /Applications/Mugshot.app
+          test "$(stat -f %u /Applications/Mugshot.app/Contents/_CodeSignature/CodeResources)" = 0
+          sudo bash /Applications/Mugshot.app/Contents/Resources/scripts/pam-uninstall-root.sh
 
       - name: Clean up
         if: always()
-        run: sudo rm -f /etc/pam.d/sudo_local /usr/local/lib/pam/pam_faceid.so
+        run: |
+          if [ -f /Applications/Mugshot.app/Contents/Resources/scripts/pam-uninstall-root.sh ]; then
+            sudo bash /Applications/Mugshot.app/Contents/Resources/scripts/pam-uninstall-root.sh
+          fi
+          sudo rm -f /etc/pam.d/sudo_local /usr/local/lib/pam/pam_faceid.so

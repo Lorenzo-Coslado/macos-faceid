@@ -73,5 +73,17 @@ else
   info "no daemon log at $DLOG yet"
 fi
 
+echo "== 6. Lock-screen permission identity =="
+if codesign -dv "$APP" 2>&1 | grep -q '^Signature=adhoc'; then
+  bad "app uses an ad-hoc signature: rebuilding changes its permission identity"
+  info "If Accessibility is checked but Mugshot still waits, remove the old entry (-),"
+  info "add the current app from Applications (+), enable it, then use Restart Mugshot and resume."
+else
+  info "$(codesign -dv "$APP" 2>&1 | awk -F= '/^TeamIdentifier=/{print "signing team: " $2}')"
+fi
+codesign --verify --deep --strict "$APP" 2>/dev/null \
+  && ok "app signature valid" || bad "app signature invalid: permissions may be rejected"
+info "The report copied in Mugshot also includes its AX and keyboard-posting permission checks."
+
 echo
 echo "Done. Paste this output back if anything says FAIL."

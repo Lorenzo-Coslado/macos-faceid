@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mugshot · visual previews</title>
+  <link rel="stylesheet" href="preview.css">
+  <script src="preview.js" defer></script>
+</head>
+<body>
+  <main>
+    <header class="intro">
+      <img src="../../assets/logo.png" width="44" height="44" alt="">
+      <div><h1>Mugshot previews</h1><p>The current interface, on a macOS desktop. Illustrations only; no camera or authentication.</p></div>
+    </header>
+    <nav aria-label="Preview scenes">
+      <button data-scene="sudo">Terminal</button><button data-scene="lock">Lock screen</button>
+      <button data-scene="onboarding">Enrollment</button><button data-scene="settings">Settings</button>
+      <button data-scene="setup">Lock-screen setup</button><button data-scene="choice">Choice panel</button>
+    </nav>
+    <div class="stage-wrap"><section id="desktop" class="desktop" aria-label="macOS desktop illustration">
+      <img class="wallpaper" src="../../assets/readme/macos-sequoia.jpg" alt="">
+      <div class="menubar"><div><span class="apple"></span><strong id="menu-app">Terminal</strong><span>File</span><span>Edit</span><span>View</span><span>Window</span><span>Help</span></div><div class="menu-right"><img src="../../assets/menubar-icon.png" alt="Mugshot menu bar icon"><span class="wifi">◉</span><span class="battery"></span><span>Wed 9:41 AM</span></div></div>
+      <div id="scene-content"></div>
+      <div class="island" role="img" aria-label="Fusion face recognition animation">
+        <svg class="silhouette" width="332" height="162" viewBox="0 0 332 162" aria-hidden="true"><path id="island-path"></path></svg>
+        <div class="lens"></div><div id="camera-light"></div>
+        <div id="island-content">
+          <div id="icon-box"><img id="face-glyph" src="../../assets/readme/faceid-glyph.png" alt=""><div id="scanline"></div>
+            <svg id="result-glyph" viewBox="0 0 64 64" aria-hidden="true"><circle id="check-circle" cx="32" cy="32" r="24" pathLength="1"></circle><path id="check-mark" d="M19.64 32 L28.36 40.73 L45.09 22.55" pathLength="1"></path><path id="lock-mark" d="M23 29 V22 C23 9 41 9 41 22 V29 M18 29 H46 V51 H18 Z M32 37 V43" pathLength="1"></path></svg>
+          </div>
+          <div id="island-title">Face ID</div><div id="island-detail"><i></i><span>Looking for your face</span></div>
+        </div>
+      </div>
+    </section></div>
+    <section class="controls" aria-label="Animation controls">
+      <button id="replay">Replay animation</button><button id="pause">Pause</button>
+      <label>Result <select id="outcome"><option value="success">Recognized</option><option value="failure">Password fallback</option></select></label>
+      <label>Time (seconds) <input id="time" type="number" min="0" max="6" step="0.05" value="1.5"></label>
+      <label><input id="notch" type="checkbox" checked> Mac with a notch</label>
+    </section>
+    <p class="caption" id="scene-caption"></p>
+    <footer>Recreated from Mugshot’s SwiftUI screens and Fusion HUD. <a href="../VISUALS.md">Sources and export instructions</a>.</footer>
+  </main>
+</body>
+</html>
