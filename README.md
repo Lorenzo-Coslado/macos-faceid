@@ -158,6 +158,19 @@ Read [SECURITY.md](SECURITY.md) for the threat model and private vulnerability r
 ## Troubleshooting
 
 <details>
+<summary><b>Face recognition stops working after restarting the Mac</b></summary>
+
+An older development installation may have left the Python LaunchAgent
+`com.lorenzo.faceid` running alongside Mugshot. Both engines use the same socket,
+so requests can reach the old Python process, which macOS may deny camera access.
+
+Mugshot now disables and unloads this legacy job before starting its own engine.
+The change persists across restarts and also runs after DMG and automatic updates.
+The old configuration remains on disk; your enrolled face and permissions are kept.
+
+</details>
+
+<details>
 <summary><b>Accessibility is enabled, but Mugshot still waits</b></summary>
 
 Use the copy in **Applications** and open its **Configure…** setup. An older build

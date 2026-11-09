@@ -63,6 +63,9 @@ jobs:
       - name: Permission and installer setup regression tests
         run: bash scripts/check-lock-screen-setup.sh
 
+      - name: Legacy LaunchAgent migration regression tests
+        run: bash scripts/check-legacy-agent-migration.sh
+
       - name: Visual rebuild preserves signing identity
         run: python3 tests/test_signing_identity.py
 
@@ -84,6 +87,7 @@ jobs:
             menubar/HelperManager.swift menubar/LoginPasswordStore.swift \
             menubar/LockScreenUnlockCoordinator.swift \
             menubar/LockScreenSetup.swift \
+            menubar/LegacyAgentMigration.swift \
             helpertool/HelperProtocol.swift menubar/FaceIDApp.swift \
             -framework AppKit -framework SwiftUI \
             -framework AVFoundation -framework ServiceManagement -framework Security \
@@ -135,6 +139,9 @@ jobs:
 
       - name: Bundle stays readable after Installer changes ownership
         run: python3 scripts/bundle-permissions.py dist/Mugshot.app
+
+      - name: Legacy migration unloads a real launchd job
+        run: bash scripts/check-legacy-agent-migration.sh --integration
 
       - name: Run the frozen engine from the bundle
         run: |

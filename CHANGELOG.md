@@ -6,6 +6,15 @@ All notable changes to this project are documented here. The format is based on
 
 ## [Unreleased]
 
+## [1.3.1] - 2026-11-09
+
+### Fixed
+
+- Disable and unload the legacy Python LaunchAgent before starting Mugshot's
+  recognition engine. Older installations could otherwise start both engines at
+  login, sending requests to a Python process without camera access. The migration
+  preserves the legacy configuration, enrolled faces and existing permissions.
+
 ## [1.3.0] - 2026-10-21
 
 ### Added
@@ -268,7 +277,8 @@ checks and for adding the deployment-target audit ([#5](https://github.com/Loren
 - The PAM rule is `sufficient`: any failure falls back to the password, no lockout.
 - Face embeddings stay local and never leave the machine.
 
-[Unreleased]: https://github.com/Lorenzo-Coslado/macos-faceid/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/Lorenzo-Coslado/macos-faceid/compare/v1.3.1...HEAD
+[1.3.1]: https://github.com/Lorenzo-Coslado/macos-faceid/compare/v1.3.0...v1.3.1
 [1.1.0]: https://github.com/Lorenzo-Coslado/macos-faceid/compare/v1.0.3...v1.1.0
 [1.0.3]: https://github.com/Lorenzo-Coslado/macos-faceid/compare/v1.0.2...v1.0.3
 [1.0.2]: https://github.com/Lorenzo-Coslado/macos-faceid/compare/v1.0.0...v1.0.2

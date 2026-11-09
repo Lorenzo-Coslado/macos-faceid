@@ -15,6 +15,12 @@ final class DaemonController {
 
     func start() {
         guard !isRunning else { return }
+        do {
+            try LegacyAgentMigration.retire()
+        } catch {
+            NSLog("faceid: échec migration ancien service: \(error.localizedDescription)")
+            return
+        }
         let (exe, args) = Run.faceidCmd(["daemon"])
         let p = Process()
         p.executableURL = URL(fileURLWithPath: exe)

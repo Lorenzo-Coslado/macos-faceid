@@ -53,6 +53,10 @@ on a real locked session. Use the exact candidate package, without resigning it:
    check that setup recovers without repeated prompts.
 6. Upgrade from the previous public release and a local build. Only an incompatible
    identity migration should require new consent; compatible updates should retain it.
+   Run `bash scripts/check-legacy-agent-migration.sh --integration` to validate
+   retirement of a real, isolated KeepAlive job. After upgrading an old development
+   installation, confirm `com.lorenzo.faceid` is disabled and the socket belongs to
+   the engine inside `/Applications/Mugshot.app`.
 7. Test uninstallation and verify that sudo and system Touch ID still work. A clean
    user or second Mac is needed to validate first-install behavior independently of
    the developer's existing TCC and Keychain state.

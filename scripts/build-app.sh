@@ -107,6 +107,7 @@ swiftc -O -swift-version 5 \
   "$HERE/menubar/LoginPasswordStore.swift" \
   "$HERE/menubar/LockScreenUnlockCoordinator.swift" \
   "$HERE/menubar/LockScreenSetup.swift" \
+  "$HERE/menubar/LegacyAgentMigration.swift" \
   "$HERE/helpertool/HelperProtocol.swift" \
   "$HERE/menubar/FaceIDApp.swift" \
   -framework AppKit -framework SwiftUI -framework AVFoundation -framework ServiceManagement -framework Security \
