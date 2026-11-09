@@ -99,18 +99,18 @@ jobs:
             -framework Foundation -framework Security
 
   bundle:
-    # Assemble the shippable bundle on the oldest supported macOS and actually run the
-    # frozen engine there. This is what catches a build that silently inherits a newer
-    # deployment target: 1.0.1 shipped requiring macOS 26 while advertising 13.0.
+    # Assemble and run the frozen engine on every available stable hosted macOS.
+    # macOS 14 runners were retired on 2026-11-02; keep the binary deployment-target
+    # check at 14.0 and validate that OS on a real Mac before releasing.
     name: Bundle on macOS ${{ matrix.macos }}
     runs-on: macos-${{ matrix.macos }}
     timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
-        # Every supported major release. 1.0.2 worked on 26 and silently fell back to
-        # the password on 15, because /etc/pam.d/sudo there has no sudo_local include.
-        macos: [14, 15, 26]
+        # 1.0.2 worked on 26 and silently fell back to the password on 15 because
+        # /etc/pam.d/sudo there has no sudo_local include. Keep both runtime checks.
+        macos: [15, 26]
     steps:
       - uses: actions/checkout@v7
 

@@ -10,7 +10,9 @@ remain blocked.
 
 Commit the release changes, update `CHANGELOG.md`, and choose a marketing version
 and a strictly increasing Sparkle build. Push the commit and wait for CI on that
-exact commit, including the macOS 14, 15 and 26 bundle jobs.
+exact commit, including the macOS 15 and 26 bundle jobs. GitHub retired its macOS 14
+runners on November 2, 2026. CI still checks every bundled Mach-O against the macOS
+14.0 deployment target; validate the candidate on a real macOS 14 Mac before release.
 
 The build machine needs the existing Developer ID Application and Installer
 certificates, the `faceid-notary` notarytool profile, the Sparkle signing key and
