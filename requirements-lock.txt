@@ -15,6 +15,6 @@ numpy==2.5.4
 opencv-python-headless==4.14.0.94
 packaging==26.3
 pyinstaller==6.22.3
-pyinstaller-hooks-contrib==2026.7
+pyinstaller-hooks-contrib==2026.9
 setuptools==84.0.0
 wheel==0.48.0
